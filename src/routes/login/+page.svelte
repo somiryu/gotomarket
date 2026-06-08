@@ -1,10 +1,8 @@
 <script>
+	import { enhance } from '$app/forms';
+
 	let { form } = $props();
 	let loading = $state(false);
-
-	function handleSubmit() {
-		loading = true;
-	}
 </script>
 
 <svelte:head>
@@ -17,7 +15,13 @@
 		<h1 class="mb-1">GoToMarket</h1>
 		<p class="mb-2">Tu lista de compras para el mercado, siempre sincronizada.</p>
 
-		<form method="POST" action="?/login" onsubmit={handleSubmit}>
+		<form method="POST" action="?/login" use:enhance={() => {
+			loading = true;
+			return async ({ update }) => {
+				loading = false;
+				await update();
+			};
+		}}>
 			<div class="form-group" style="text-align: left;">
 				<label for="email">Ingresa tu correo electrónico</label>
 				<input
@@ -27,7 +31,6 @@
 					placeholder="ejemplo@correo.com"
 					required
 					value={form?.email ?? ''}
-					disabled={loading}
 				/>
 			</div>
 
