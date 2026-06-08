@@ -53,10 +53,11 @@
 			</div>
 		{:else}
 			<form method="POST" action="?/updateProduct" use:enhance={() => {
-				return ({ result }) => {
+				return async ({ result, update }) => {
 					if (result.type === 'success') {
 						isEditingDetails = false;
 					}
+					await update();
 				};
 			}}>
 				<div class="form-group">
@@ -149,10 +150,11 @@
 		<button onclick={() => priceDialog?.close()} class="btn-text" style="font-size: 1.25rem;">&times;</button>
 	</div>
 	<form method="POST" action="?/addPrice" use:enhance={() => {
-		return ({ result }) => {
+		return async ({ result, update }) => {
 			if (result.type === 'success') {
 				priceDialog?.close();
 			}
+			await update();
 		};
 	}}>
 		<div class="form-group">

@@ -145,10 +145,11 @@
 		<button onclick={() => addDialog?.close()} class="btn-text" style="font-size: 1.25rem;">&times;</button>
 	</div>
 	<form method="POST" action="?/addProduct" use:enhance={() => {
-		return ({ result }) => {
+		return async ({ result, update }) => {
 			if (result.type === 'success') {
 				addDialog?.close();
 			}
+			await update();
 		};
 	}}>
 		<div class="form-group">
