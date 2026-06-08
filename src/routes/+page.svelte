@@ -8,15 +8,6 @@
 	// Keep internal state updated when server data changes
 	$effect(() => {
 		products = data.products || [];
-		if (selectedProductDetails) {
-			const updated = products.find(p => p.id === selectedProductDetails.id);
-			if (updated) {
-				selectedProductDetails = updated;
-			} else {
-				selectedProductDetails = null;
-				detailsDialog?.close();
-			}
-		}
 	});
 
 	/** @type {HTMLDialogElement | null} */
@@ -28,8 +19,21 @@
 	/** @type {HTMLDialogElement | null} */
 	let detailsDialog = $state(null);
 	let selectedProduct = $state({ id: '', name: '' });
-	let selectedProductDetails = $state(null);
+	let selectedProductId = $state(null);
 	let isEditingDetails = $state(false);
+
+	let selectedProductDetails = $derived(
+		products.find(p => p.id === selectedProductId) || null
+	);
+
+	// Close details dialog if the product is deleted from list
+	$effect(() => {
+		if (selectedProductId && !selectedProductDetails) {
+			detailsDialog?.close();
+			selectedProductId = null;
+		}
+	});
+
 	/** @type {Record<string, boolean>} */
 	let isSaving = $state({});
 	let searchQuery = $state('');
@@ -37,7 +41,7 @@
 	let activeFilters = $state([]);
 
 	function openDetailsDialog(productItem) {
-		selectedProductDetails = productItem;
+		selectedProductId = productItem.id;
 		isEditingDetails = false;
 		detailsDialog?.showModal();
 	}
