@@ -54,6 +54,8 @@ export const actions = {
 		const stock = data.get('stock')?.toString() || 'Suficiente';
 		const quantityRaw = data.get('quantity')?.toString().trim();
 		const unit = data.get('unit')?.toString().trim() || null;
+		const tagsRaw = data.get('tags')?.toString() || '';
+		const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
 		if (!name) {
 			return fail(400, { error: 'El nombre del producto es requerido.' });
@@ -76,7 +78,8 @@ export const actions = {
 				name,
 				stock,
 				quantity,
-				unit
+				unit,
+				tags
 			});
 
 		if (dbError) {
@@ -170,6 +173,9 @@ export const actions = {
 		const notes = data.get('notes')?.toString().trim();
 		const quantityRaw = data.get('quantity')?.toString().trim();
 		const unit = data.get('unit')?.toString().trim() || null;
+		const isEssential = data.get('is_essential') === 'on';
+		const tagsRaw = data.get('tags')?.toString() || '';
+		const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
 		if (!productId || !name) {
 			return fail(400, { error: 'ID de producto y nombre son requeridos.' });
@@ -187,6 +193,8 @@ export const actions = {
 				notes,
 				quantity,
 				unit,
+				is_essential: isEssential,
+				tags,
 				updated_at: new Date().toISOString()
 			})
 			.eq('id', productId)

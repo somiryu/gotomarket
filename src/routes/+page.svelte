@@ -39,7 +39,14 @@
 	let searchQuery = $state('');
 	/** @type {string[]} */
 	let activeFilters = $state([]);
+	/** @type {string[]} */
+	let activeTags = $state([]);
 	let stickyHeight = $state(0);
+	let showOnlyEssential = $state(false);
+
+	let allTags = $derived(
+		Array.from(new Set(products.flatMap(p => p.tags || []))).sort()
+	);
 
 	function openDetailsDialog(productItem) {
 		selectedProductId = productItem.id;
@@ -51,7 +58,9 @@
 		products.filter(p => {
 			const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
 			const matchesFilter = activeFilters.length === 0 || activeFilters.includes(p.stock);
-			return matchesSearch && matchesFilter;
+			const matchesEssential = !showOnlyEssential || p.is_essential;
+			const matchesTags = activeTags.length === 0 || activeTags.some(t => (p.tags || []).includes(t));
+			return matchesSearch && matchesFilter && matchesEssential && matchesTags;
 		})
 	);
 
@@ -70,8 +79,19 @@
 		}
 	}
 
+	/** @param {string} tag */
+	function toggleTag(tag) {
+		if (activeTags.includes(tag)) {
+			activeTags = activeTags.filter(t => t !== tag);
+		} else {
+			activeTags = [...activeTags, tag];
+		}
+	}
+
 	function clearFilters() {
 		activeFilters = [];
+		showOnlyEssential = false;
+		activeTags = [];
 	}
 
 	/**
@@ -158,17 +178,17 @@
 			<button 
 				type="button" 
 				onclick={() => filterDialog?.showModal()} 
-				class="btn btn-secondary filter-btn {activeFilters.length > 0 ? 'active' : ''}"
+				class="btn btn-secondary filter-btn {activeFilters.length > 0 || activeTags.length > 0 ? 'active' : ''}"
 			>
 				<span>🎛️ Filtros</span>
-				{#if activeFilters.length > 0}
-					<span class="filter-count">{activeFilters.length}</span>
+				{#if (activeFilters.length + activeTags.length) > 0}
+					<span class="filter-count">{activeFilters.length + activeTags.length}</span>
 				{/if}
 			</button>
 		</div>
 
 		<!-- Chips de Filtros Activos -->
-		{#if activeFilters.length > 0}
+		{#if activeFilters.length > 0 || showOnlyEssential || activeTags.length > 0}
 			<div class="active-filters-chips fade-in" style="margin-top: 0.75rem; margin-bottom: 0;">
 				{#each activeFilters as filter}
 					<button 
@@ -180,6 +200,26 @@
 						<span class="chip-close">&times;</span>
 					</button>
 				{/each}
+				{#each activeTags as tag}
+					<button 
+						type="button" 
+						class="filter-chip tag-chip"
+						onclick={() => toggleTag(tag)}
+					>
+						<span>🏷️ {tag}</span>
+						<span class="chip-close">&times;</span>
+					</button>
+				{/each}
+				{#if showOnlyEssential}
+					<button 
+						type="button" 
+						class="filter-chip esencial-chip"
+						onclick={() => showOnlyEssential = false}
+					>
+						<span>⭐ Esencial</span>
+						<span class="chip-close">&times;</span>
+					</button>
+				{/if}
 				<button 
 					type="button" 
 					class="btn-text clear-all-btn" 
@@ -215,9 +255,21 @@
 				{#each filteredProducts as product (product.id)}
 					<div class="table-row-grid">
 						<div class="col-product">
-							<span class="product-name">{product.name}</span>
+							<span class="product-name">
+								{#if product.is_essential}
+									<span class="essential-star" title="Producto Esencial">⭐</span>
+								{/if}
+								{product.name}
+							</span>
 							{#if product.quantity}
 								<span class="product-qty">{product.quantity} {product.unit || ''}</span>
+							{/if}
+							{#if product.tags && product.tags.length > 0}
+								<div class="product-tags-list">
+									{#each product.tags as tag}
+										<span class="product-tag-badge">{tag}</span>
+									{/each}
+								</div>
 							{/if}
 						</div>
 						
@@ -320,6 +372,17 @@
 			</div>
 		</div>
 
+		<div class="form-group" style="text-align: left;">
+			<label for="new-product-tags">Etiquetas / Categorías</label>
+			<input 
+				type="text" 
+				id="new-product-tags" 
+				name="tags" 
+				placeholder="Ej. Carnes, Pasillo 1 (separadas por comas)" 
+				autocomplete="off"
+			/>
+		</div>
+
 		<div class="dialog-footer">
 			<button type="button" onclick={() => addDialog?.close()} class="btn btn-secondary">Cancelar</button>
 			<button type="submit" class="btn btn-primary">Agregar</button>
@@ -391,7 +454,7 @@
 	
 	<div style="margin-bottom: 1.25rem; text-align: left;">
 		<p class="filter-label">Stock de productos:</p>
-		<div class="filter-buttons-grid">
+		<div class="filter-buttons-grid" style="margin-bottom: 1.25rem;">
 			{#each ['Alto', 'Suficiente', 'Bajo', 'Agotado'] as option}
 				<button
 					type="button"
@@ -403,10 +466,31 @@
 				</button>
 			{/each}
 		</div>
+
+		<p class="filter-label">Prioridad:</p>
+		<label class="essential-filter-toggle" style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; cursor: pointer;">
+			<input type="checkbox" bind:checked={showOnlyEssential} />
+			<span>Mostrar solo esenciales ⭐</span>
+		</label>
+
+		{#if allTags.length > 0}
+			<p class="filter-label" style="margin-top: 1rem;">Etiquetas / Categorías:</p>
+			<div class="filter-tags-grid">
+				{#each allTags as tag}
+					<button
+						type="button"
+						class="filter-tag-option-btn {activeTags.includes(tag) ? 'active' : ''}"
+						onclick={() => toggleTag(tag)}
+					>
+						{tag}
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<div class="dialog-footer">
-		<button type="button" onclick={clearFilters} class="btn btn-secondary" disabled={activeFilters.length === 0}>
+		<button type="button" onclick={clearFilters} class="btn btn-secondary" disabled={activeFilters.length === 0 && !showOnlyEssential && activeTags.length === 0}>
 			Limpiar
 		</button>
 		<button type="button" onclick={() => filterDialog?.close()} class="btn btn-primary">
@@ -432,9 +516,14 @@
 						<button onclick={() => isEditingDetails = true} class="btn btn-secondary btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">Editar</button>
 					</div>
 
-					{#if selectedProductDetails.quantity || selectedProductDetails.unit}
-						<div class="mb-2" style="font-size: 0.95rem; color: var(--color-text-muted);">
-							📍 Compra habitual: <strong style="color: var(--color-text);">{selectedProductDetails.quantity || ''} {selectedProductDetails.unit || ''}</strong>
+					{#if selectedProductDetails.quantity || selectedProductDetails.unit || selectedProductDetails.is_essential}
+						<div class="mb-2" style="font-size: 0.95rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+							{#if selectedProductDetails.quantity || selectedProductDetails.unit}
+								<span>📍 Compra habitual: <strong style="color: var(--color-text);">{selectedProductDetails.quantity || ''} {selectedProductDetails.unit || ''}</strong></span>
+							{/if}
+							{#if selectedProductDetails.is_essential}
+								<span class="badge-essential">⭐ Esencial</span>
+							{/if}
 						</div>
 					{/if}
 					
@@ -476,6 +565,11 @@
 									<option value="und"></option>
 								</datalist>
 							</div>
+						</div>
+
+						<div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.25rem; margin-bottom: 1.25rem;">
+							<input type="checkbox" id="edit-essential" name="is_essential" checked={selectedProductDetails.is_essential} style="width: 18px; height: 18px; accent-color: var(--color-primary); cursor: pointer;" />
+							<label for="edit-essential" style="font-size: 0.95rem; cursor: pointer; color: var(--color-text); font-weight: 500; margin-bottom: 0;">Marcar como producto esencial ⭐</label>
 						</div>
 
 						<div class="form-group">
@@ -1069,5 +1163,54 @@
 
 	.btn-delete-price:hover {
 		background: #fee2e2;
+	}
+
+	.essential-star {
+		margin-right: 0.25rem;
+		display: inline-block;
+		color: #eab308;
+		font-size: 0.95rem;
+	}
+
+	.essential-filter-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		background: rgba(255, 255, 255, 0.8);
+		cursor: pointer;
+		font-weight: 500;
+		font-size: 0.9rem;
+		color: var(--color-text);
+		width: 100%;
+		transition: all var(--transition-fast);
+	}
+
+	.essential-filter-toggle input {
+		width: 18px;
+		height: 18px;
+		accent-color: var(--color-primary);
+		cursor: pointer;
+		margin: 0;
+	}
+
+	.badge-essential {
+		background: #fef3c7;
+		color: #b45309;
+		padding: 0.2rem 0.5rem;
+		border-radius: 8px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		border: 1px solid rgba(180, 83, 9, 0.15);
+		display: inline-flex;
+		align-items: center;
+	}
+
+	.filter-chip.esencial-chip {
+		background-color: #fef3c7;
+		color: #b45309;
+		border-color: rgba(180, 83, 9, 0.2);
 	}
 </style>
