@@ -265,13 +265,6 @@
 							{#if product.quantity}
 								<span class="product-qty">{product.quantity} {product.unit || ''}</span>
 							{/if}
-							{#if product.tags && product.tags.length > 0}
-								<div class="product-tags-list">
-									{#each product.tags as tag}
-										<span class="product-tag-badge">{tag}</span>
-									{/each}
-								</div>
-							{/if}
 						</div>
 						
 						<div class="col-stock">
