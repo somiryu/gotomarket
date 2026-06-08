@@ -1,13 +1,12 @@
 <script>
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
 
 	let { data, children } = $props();
 </script>
 
 <svelte:head>
 	<title>GoToMarket - Lista de Compras</title>
-	<link rel="icon" type="image/svg+xml" href="{favicon}?v=3" />
+	<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=4" />
 </svelte:head>
 
 <div class="app-container">
