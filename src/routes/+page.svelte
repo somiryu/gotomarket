@@ -574,7 +574,8 @@
 	/* Responsive Grid Table */
 	.table-header-grid {
 		display: grid;
-		grid-template-columns: 2.3fr 1.3fr 1.6fr 0.8fr;
+		grid-template-columns: 2.2fr 1.2fr 1.2fr 0.6fr;
+		column-gap: 1.5rem;
 		padding: 1.1rem 1rem;
 		background: rgba(0, 0, 0, 0.02);
 		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -585,7 +586,8 @@
 
 	.table-row-grid {
 		display: grid;
-		grid-template-columns: 2.3fr 1.3fr 1.6fr 0.8fr;
+		grid-template-columns: 2.2fr 1.2fr 1.2fr 0.6fr;
+		column-gap: 1.5rem;
 		align-items: center;
 		padding: 1.25rem 1rem;
 		border-bottom: 1px solid rgba(0, 0, 0, 0.03);
