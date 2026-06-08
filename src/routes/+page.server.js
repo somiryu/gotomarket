@@ -94,5 +94,53 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+
+	addPrice: async ({ request, locals }) => {
+		if (!locals.user) {
+			throw redirect(303, '/login');
+		}
+
+		const data = await request.formData();
+		const productId = data.get('productId')?.toString();
+		const priceRaw = data.get('price')?.toString();
+		const unit = data.get('unit')?.toString().trim();
+		const place = data.get('place')?.toString().trim();
+
+		if (!productId || !priceRaw || !unit || !place) {
+			return fail(400, { error: 'Todos los campos son requeridos para agregar un precio.' });
+		}
+
+		const price = parseFloat(priceRaw);
+		if (isNaN(price) || price <= 0) {
+			return fail(400, { error: 'Ingresa un valor numérico válido mayor a cero.' });
+		}
+
+		// Verify product belongs to user
+		const { data: product, error: checkError } = await supabase
+			.from('market_products')
+			.select('id')
+			.eq('id', productId)
+			.eq('user_id', locals.user.id)
+			.maybeSingle();
+
+		if (checkError || !product) {
+			return fail(403, { error: 'No autorizado o producto no existe.' });
+		}
+
+		const { error: dbError } = await supabase
+			.from('market_prices')
+			.insert({
+				product_id: productId,
+				price,
+				unit,
+				place
+			});
+
+		if (dbError) {
+			return fail(500, { error: 'Error al registrar el precio: ' + dbError.message });
+		}
+
+		return { success: true };
 	}
 };

@@ -10,7 +10,14 @@
 	});
 
 	let addDialog = $state(null);
+	let priceDialog = $state(null);
+	let selectedProduct = $state({ id: '', name: '' });
 	let isSaving = $state({});
+
+	function openPriceDialog(productItem) {
+		selectedProduct = productItem;
+		priceDialog?.showModal();
+	}
 
 	async function handleStockChange(productId, newStock) {
 		isSaving[productId] = true;
@@ -124,7 +131,7 @@
 									<a href="/product/{product.id}" class="edit-price-link">Edit</a>
 								</div>
 							{:else}
-								<a href="/product/{product.id}" class="add-price-link">+ Precio</a>
+								<button type="button" onclick={() => openPriceDialog(product)} class="add-price-link">+ Precio</button>
 							{/if}
 						</div>
 
@@ -166,6 +173,61 @@
 		<div class="dialog-footer">
 			<button type="button" onclick={() => addDialog?.close()} class="btn btn-secondary">Cancelar</button>
 			<button type="submit" class="btn btn-primary">Agregar</button>
+		</div>
+	</form>
+</dialog>
+
+<!-- Add Price Modal Dialog -->
+<dialog bind:this={priceDialog}>
+	<div class="dialog-header">
+		<h2>Registrar Precio</h2>
+		<button onclick={() => priceDialog?.close()} class="btn-text" style="font-size: 1.25rem;">&times;</button>
+	</div>
+	<p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1rem; text-align: left;">
+		Producto: <strong style="color: var(--color-text);">{selectedProduct.name}</strong>
+	</p>
+	<form method="POST" action="?/addPrice" use:enhance={() => {
+		return async ({ result, update }) => {
+			if (result.type === 'success') {
+				priceDialog?.close();
+			}
+			await update();
+		};
+	}}>
+		<input type="hidden" name="productId" value={selectedProduct.id} />
+		
+		<div class="form-group" style="text-align: left;">
+			<label for="price">Precio ($)</label>
+			<input type="number" id="price" name="price" placeholder="Ej. 20000" min="1" step="any" required />
+		</div>
+
+		<div class="form-group" style="text-align: left;">
+			<label for="unit">Unidad</label>
+			<input type="text" id="unit" name="unit" placeholder="Ej. grm, kg, und, ltr" required list="units-suggestions" autocomplete="off" />
+			<datalist id="units-suggestions">
+				<option value="grm"></option>
+				<option value="kg"></option>
+				<option value="und"></option>
+				<option value="ltr"></option>
+				<option value="paquete"></option>
+			</datalist>
+		</div>
+
+		<div class="form-group" style="text-align: left;">
+			<label for="place">Establecimiento / Lugar</label>
+			<input type="text" id="place" name="place" placeholder="Ej. Ara, D1, Éxito, Carulla" required list="places-suggestions" autocomplete="off" />
+			<datalist id="places-suggestions">
+				<option value="Ara"></option>
+				<option value="D1"></option>
+				<option value="Éxito"></option>
+				<option value="Carulla"></option>
+				<option value="Mercado local"></option>
+			</datalist>
+		</div>
+
+		<div class="dialog-footer">
+			<button type="button" onclick={() => priceDialog?.close()} class="btn btn-secondary">Cancelar</button>
+			<button type="submit" class="btn btn-primary">Registrar</button>
 		</div>
 	</form>
 </dialog>
@@ -305,6 +367,12 @@
 		font-size: 0.8rem;
 		font-weight: 500;
 		color: var(--color-primary);
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		font-family: inherit;
+		text-align: left;
 	}
 
 	/* Actions */
