@@ -52,9 +52,16 @@ export const actions = {
 		const data = await request.formData();
 		const name = data.get('name')?.toString().trim();
 		const notes = data.get('notes')?.toString().trim();
+		const quantityRaw = data.get('quantity')?.toString().trim();
+		const unit = data.get('unit')?.toString().trim() || null;
 
 		if (!name) {
 			return fail(400, { error: 'El nombre del producto es requerido.' });
+		}
+
+		const quantity = quantityRaw ? parseFloat(quantityRaw) : null;
+		if (quantity !== null && isNaN(quantity)) {
+			return fail(400, { error: 'La cantidad habitual debe ser un número.' });
 		}
 
 		const { error: dbError } = await supabase
@@ -62,6 +69,8 @@ export const actions = {
 			.update({
 				name,
 				notes,
+				quantity,
+				unit,
 				updated_at: new Date().toISOString()
 			})
 			.eq('id', params.id)

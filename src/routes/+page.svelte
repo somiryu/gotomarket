@@ -123,6 +123,9 @@
 					<div class="table-row-grid">
 						<div class="col-product">
 							<span class="product-name">{product.name}</span>
+							{#if product.quantity}
+								<span class="product-qty">{product.quantity} {product.unit || ''}</span>
+							{/if}
 						</div>
 						
 						<div class="col-stock">
@@ -199,6 +202,24 @@
 				<option value="Bajo">Bajo</option>
 				<option value="Agotado">Agotado</option>
 			</select>
+		</div>
+
+		<div class="flex-row gap-md" style="margin-bottom: 1.25rem;">
+			<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+				<label for="new-product-qty">Cantidad Habitual</label>
+				<input type="number" id="new-product-qty" name="quantity" placeholder="Ej. 3" min="0" step="any" />
+			</div>
+			<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+				<label for="new-product-unit">Unidad Habitual</label>
+				<input type="text" id="new-product-unit" name="unit" placeholder="Ej. libras, kg" list="qty-units-suggestions" autocomplete="off" />
+				<datalist id="qty-units-suggestions">
+					<option value="libras"></option>
+					<option value="paquetes"></option>
+					<option value="grm"></option>
+					<option value="kg"></option>
+					<option value="und"></option>
+				</datalist>
+			</div>
 		</div>
 
 		<div class="dialog-footer">
@@ -306,15 +327,25 @@
 
 	.col-product {
 		font-weight: 500;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 		padding-right: 0.25rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		overflow: hidden;
 	}
 
 	.product-name {
 		font-size: 0.95rem;
 		color: var(--color-text);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.product-qty {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		margin-top: 0.05rem;
 	}
 
 	.col-stock, .col-price, .col-action {

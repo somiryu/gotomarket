@@ -52,6 +52,8 @@ export const actions = {
 		const data = await request.formData();
 		const name = data.get('name')?.toString().trim();
 		const stock = data.get('stock')?.toString() || 'Suficiente';
+		const quantityRaw = data.get('quantity')?.toString().trim();
+		const unit = data.get('unit')?.toString().trim() || null;
 
 		if (!name) {
 			return fail(400, { error: 'El nombre del producto es requerido.' });
@@ -62,12 +64,19 @@ export const actions = {
 			return fail(400, { error: 'Nivel de stock inválido.' });
 		}
 
+		const quantity = quantityRaw ? parseFloat(quantityRaw) : null;
+		if (quantity !== null && isNaN(quantity)) {
+			return fail(400, { error: 'La cantidad habitual debe ser un número.' });
+		}
+
 		const { error: dbError } = await supabase
 			.from('market_products')
 			.insert({
 				user_id: locals.user.id,
 				name,
-				stock
+				stock,
+				quantity,
+				unit
 			});
 
 		if (dbError) {

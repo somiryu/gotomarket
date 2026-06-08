@@ -44,8 +44,14 @@
 				<h1>{product.name}</h1>
 				<button onclick={() => isEditingDetails = true} class="btn-text">Editar</button>
 			</div>
+
+			{#if product.quantity}
+				<div class="mb-2" style="font-size: 0.95rem; color: var(--color-text-muted); text-align: left;">
+					📍 Compra habitual: <strong style="color: var(--color-text);">{product.quantity} {product.unit || ''}</strong>
+				</div>
+			{/if}
 			
-			<div class="product-notes mt-1">
+			<div class="product-notes mt-1" style="text-align: left;">
 				<span class="label">Notas adicionales / Detalles</span>
 				<p class="notes-text">
 					{product.notes || 'No hay notas adicionales para este producto.'}
@@ -63,6 +69,24 @@
 				<div class="form-group">
 					<label for="name">Nombre del Producto</label>
 					<input type="text" id="name" name="name" value={product.name} required />
+				</div>
+
+				<div class="flex-row gap-md" style="margin-bottom: 1.25rem;">
+					<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+						<label for="quantity">Cantidad Habitual</label>
+						<input type="number" id="quantity" name="quantity" value={product.quantity || ''} min="0" step="any" />
+					</div>
+					<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+						<label for="edit-qty-unit">Unidad Habitual</label>
+						<input type="text" id="edit-qty-unit" name="unit" value={product.unit || ''} placeholder="Ej. libras, kg" list="edit-qty-units-suggestions" autocomplete="off" />
+						<datalist id="edit-qty-units-suggestions">
+							<option value="libras"></option>
+							<option value="paquetes"></option>
+							<option value="grm"></option>
+							<option value="kg"></option>
+							<option value="und"></option>
+						</datalist>
+					</div>
 				</div>
 
 				<div class="form-group">
