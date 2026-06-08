@@ -574,8 +574,8 @@
 	/* Responsive Grid Table */
 	.table-header-grid {
 		display: grid;
-		grid-template-columns: 2fr 1.5fr 1.8fr 0.7fr;
-		padding: 1rem 0.75rem;
+		grid-template-columns: 2.3fr 1.3fr 1.6fr 0.8fr;
+		padding: 1.1rem 1rem;
 		background: rgba(0, 0, 0, 0.02);
 		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 		font-size: 0.85rem;
@@ -585,9 +585,9 @@
 
 	.table-row-grid {
 		display: grid;
-		grid-template-columns: 2fr 1.5fr 1.8fr 0.7fr;
+		grid-template-columns: 2.3fr 1.3fr 1.6fr 0.8fr;
 		align-items: center;
-		padding: 0.85rem 0.75rem;
+		padding: 1.25rem 1rem;
 		border-bottom: 1px solid rgba(0, 0, 0, 0.03);
 	}
 
@@ -618,9 +618,15 @@
 		margin-top: 0.05rem;
 	}
 
-	.col-stock, .col-price, .col-action {
+	.col-stock, .col-price {
 		display: flex;
 		align-items: center;
+	}
+
+	.col-action {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
 	}
 
 	/* Dropdown custom styling */
@@ -711,12 +717,15 @@
 	.btn-ver {
 		background: rgba(139, 92, 246, 0.08);
 		color: var(--color-primary);
-		padding: 0.35rem 0.65rem;
-		border-radius: 12px;
+		padding: 0.35rem 0.8rem;
+		border-radius: 999px;
 		font-size: 0.8rem;
 		font-weight: 600;
 		text-align: center;
-		width: 100%;
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all var(--transition-fast);
 	}
 
 	.btn-ver:hover {
