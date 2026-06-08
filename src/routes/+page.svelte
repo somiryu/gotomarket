@@ -8,6 +8,15 @@
 	// Keep internal state updated when server data changes
 	$effect(() => {
 		products = data.products || [];
+		if (selectedProductDetails) {
+			const updated = products.find(p => p.id === selectedProductDetails.id);
+			if (updated) {
+				selectedProductDetails = updated;
+			} else {
+				selectedProductDetails = null;
+				detailsDialog?.close();
+			}
+		}
 	});
 
 	/** @type {HTMLDialogElement | null} */
@@ -16,12 +25,22 @@
 	let priceDialog = $state(null);
 	/** @type {HTMLDialogElement | null} */
 	let filterDialog = $state(null);
+	/** @type {HTMLDialogElement | null} */
+	let detailsDialog = $state(null);
 	let selectedProduct = $state({ id: '', name: '' });
+	let selectedProductDetails = $state(null);
+	let isEditingDetails = $state(false);
 	/** @type {Record<string, boolean>} */
 	let isSaving = $state({});
 	let searchQuery = $state('');
 	/** @type {string[]} */
 	let activeFilters = $state([]);
+
+	function openDetailsDialog(productItem) {
+		selectedProductDetails = productItem;
+		isEditingDetails = false;
+		detailsDialog?.showModal();
+	}
 
 	let filteredProducts = $derived(
 		products.filter(p => {
@@ -222,7 +241,7 @@
 								<div class="price-container">
 									<span class="price-value">{formatPrice(product.latestPrice.price)}</span>
 									<span class="price-unit">/{product.latestPrice.unit}</span>
-									<a href="/product/{product.id}" class="edit-price-link">Edit</a>
+									<button type="button" onclick={() => openDetailsDialog(product)} class="edit-price-link">Edit</button>
 								</div>
 							{:else}
 								<button type="button" onclick={() => openPriceDialog(product)} class="add-price-link">+ Precio</button>
@@ -230,7 +249,7 @@
 						</div>
 
 						<div class="col-action">
-							<a href="/product/{product.id}" class="btn-ver">Ver</a>
+							<button type="button" onclick={() => openDetailsDialog(product)} class="btn-ver">Ver</button>
 						</div>
 					</div>
 				{/each}
@@ -386,6 +405,149 @@
 			Aceptar
 		</button>
 	</div>
+</dialog>
+
+<!-- Product Details Modal Dialog (Fullscreen style) -->
+<dialog bind:this={detailsDialog} class="fullscreen-dialog">
+	{#if selectedProductDetails}
+		<div class="dialog-header">
+			<h2>Detalles del Producto</h2>
+			<button onclick={() => detailsDialog?.close()} class="btn-text" style="font-size: 1.5rem; font-weight: bold;">&times;</button>
+		</div>
+
+		<div class="dialog-body-scrollable">
+			<!-- Product Info Card -->
+			<div class="card" style="margin-bottom: 1.5rem; text-align: left;">
+				{#if !isEditingDetails}
+					<div class="flex-row justify-between mb-1" style="align-items: center;">
+						<h1 style="font-size: 1.5rem; margin-bottom: 0;">{selectedProductDetails.name}</h1>
+						<button onclick={() => isEditingDetails = true} class="btn btn-secondary btn-sm" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">Editar</button>
+					</div>
+
+					{#if selectedProductDetails.quantity || selectedProductDetails.unit}
+						<div class="mb-2" style="font-size: 0.95rem; color: var(--color-text-muted);">
+							📍 Compra habitual: <strong style="color: var(--color-text);">{selectedProductDetails.quantity || ''} {selectedProductDetails.unit || ''}</strong>
+						</div>
+					{/if}
+					
+					<div class="product-notes mt-1">
+						<span class="label">Notas adicionales / Detalles</span>
+						<p class="notes-text" style="margin-top: 0.25rem;">
+							{selectedProductDetails.notes || 'No hay notas adicionales para este producto.'}
+						</p>
+					</div>
+				{:else}
+					<form method="POST" action="?/updateProduct" use:enhance={() => {
+						return async ({ result, update }) => {
+							if (result.type === 'success') {
+								isEditingDetails = false;
+							}
+							await update();
+						};
+					}}>
+						<input type="hidden" name="productId" value={selectedProductDetails.id} />
+						
+						<div class="form-group">
+							<label for="edit-name">Nombre del Producto</label>
+							<input type="text" id="edit-name" name="name" value={selectedProductDetails.name} required />
+						</div>
+
+						<div class="flex-row gap-md" style="margin-bottom: 1.25rem;">
+							<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+								<label for="edit-quantity">Cantidad Habitual</label>
+								<input type="number" id="edit-quantity" name="quantity" value={selectedProductDetails.quantity || ''} min="0" step="any" />
+							</div>
+							<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+								<label for="edit-details-unit">Unidad Habitual</label>
+								<input type="text" id="edit-details-unit" name="unit" value={selectedProductDetails.unit || ''} placeholder="Ej. libras, kg" list="edit-dialog-units" autocomplete="off" />
+								<datalist id="edit-dialog-units">
+									<option value="libras"></option>
+									<option value="paquetes"></option>
+									<option value="grm"></option>
+									<option value="kg"></option>
+									<option value="und"></option>
+								</datalist>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="edit-notes">Notas / Descripción</label>
+							<textarea id="edit-notes" name="notes" rows="3" placeholder="Ej: Comprar el paquete familiar o marca específica.">{selectedProductDetails.notes || ''}</textarea>
+						</div>
+
+						<div class="flex-row mt-2" style="justify-content: flex-end; gap: 0.5rem;">
+							<button type="button" onclick={() => isEditingDetails = false} class="btn btn-secondary btn-sm">Cancelar</button>
+							<button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+						</div>
+					</form>
+				{/if}
+			</div>
+
+			<!-- Prices Section Header -->
+			<div class="flex-row justify-between mb-2 mt-2" style="align-items: center;">
+				<h2 style="font-size: 1.2rem; margin-bottom: 0;">Historial de Precios</h2>
+				<button onclick={() => openPriceDialog(selectedProductDetails)} class="btn btn-primary btn-sm">
+					+ Nuevo Precio
+				</button>
+			</div>
+
+			<!-- Price list Card -->
+			<div class="card prices-card" style="text-align: left;">
+				<div class="prices-header-grid">
+					<div>Precio</div>
+					<div>Unidad</div>
+					<div>Lugar</div>
+					<div>Fecha</div>
+				</div>
+
+				<div class="prices-body">
+					{#if !selectedProductDetails.market_prices || selectedProductDetails.market_prices.length === 0}
+						<div class="empty-state">
+							<span style="font-size: 1.5rem;">💸</span>
+							<p>No hay historial de precios para este producto.</p>
+						</div>
+					{:else}
+						{#each selectedProductDetails.market_prices as priceLog (priceLog.id)}
+							<div class="price-row-grid">
+								<div class="col-price-value">
+									{formatPrice(priceLog.price)}
+								</div>
+								<div class="col-price-unit">{priceLog.unit}</div>
+								<div class="col-price-place">{priceLog.place}</div>
+								<div class="col-price-date flex-row justify-between w-full">
+									<span>{new Date(priceLog.created_at).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+									
+									<form method="POST" action="?/deletePrice" use:enhance style="display:inline;">
+										<input type="hidden" name="priceId" value={priceLog.id} />
+										<button type="submit" class="btn-delete-price" title="Eliminar registro">&times;</button>
+									</form>
+								</div>
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
+
+			<!-- Dangerous Actions -->
+			<div class="card mt-2" style="background: rgba(254, 226, 226, 0.4); border-color: rgba(239, 68, 68, 0.2); text-align: left; margin-top: 1.5rem; padding: 1.25rem;">
+				<h3 style="color: #991b1b; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem;">Zona de peligro</h3>
+				<p style="font-size: 0.8rem; margin-bottom: 1rem; color: var(--color-text-muted);">Al eliminar este producto, se borrarán de forma permanente todos sus registros de precios e información.</p>
+				<form method="POST" action="?/deleteProduct" use:enhance={() => {
+					return async ({ result, update }) => {
+						if (result.type === 'success') {
+							detailsDialog?.close();
+						}
+						await update();
+					};
+				}}>
+					<input type="hidden" name="id" value={selectedProductDetails.id} />
+					<button type="submit" class="btn btn-danger w-full btn-sm" onclick={(e) => { if (!confirm('¿Estás seguro de que deseas eliminar este producto y todo su historial de precios?')) e.preventDefault(); }}>
+						Eliminar Producto
+					</button>
+				</form>
+			</div>
+		</div>
+	{/if}
 </dialog>
 
 <!-- Floating Action Button for easy access on mobile -->
@@ -762,5 +924,112 @@
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
+	}
+
+	/* Fullscreen Dialog Overlay */
+	dialog.fullscreen-dialog {
+		width: 100vw;
+		height: 100vh;
+		max-width: 100vw;
+		max-height: 100vh;
+		margin: 0;
+		border: none;
+		border-radius: 0;
+		display: none;
+		flex-direction: column;
+		padding: 1.25rem 1rem;
+		background: var(--color-bg-gradient);
+		box-shadow: none;
+	}
+
+	dialog.fullscreen-dialog[open] {
+		display: flex;
+		animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+	}
+
+	@keyframes slideUp {
+		from { transform: translateY(100%); }
+		to { transform: translateY(0); }
+	}
+
+	.dialog-body-scrollable {
+		flex: 1;
+		overflow-y: auto;
+		padding-bottom: 3rem;
+		margin-top: 0.5rem;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	button.edit-price-link {
+		font-size: 0.75rem;
+		color: var(--color-primary);
+		text-decoration: underline;
+		margin-top: 0.1rem;
+		width: fit-content;
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		font-family: inherit;
+		text-align: left;
+	}
+
+	/* Prices Grid inside Dialog */
+	.prices-header-grid {
+		display: grid;
+		grid-template-columns: 1.2fr 0.8fr 1.0fr 1.5fr;
+		padding: 0.85rem 0.75rem;
+		background: rgba(0, 0, 0, 0.02);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--color-text-muted);
+	}
+
+	.price-row-grid {
+		display: grid;
+		grid-template-columns: 1.2fr 0.8fr 1.0fr 1.5fr;
+		align-items: center;
+		padding: 0.85rem 0.75rem;
+		border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+		font-size: 0.9rem;
+	}
+
+	.price-row-grid:last-child {
+		border-bottom: none;
+	}
+
+	.col-price-value {
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
+	.col-price-unit {
+		color: var(--color-text-muted);
+	}
+
+	.col-price-place {
+		font-weight: 500;
+	}
+
+	.col-price-date {
+		color: var(--color-text-muted);
+		font-size: 0.8rem;
+	}
+
+	.btn-delete-price {
+		background: none;
+		border: none;
+		color: #ef4444;
+		font-size: 1.2rem;
+		cursor: pointer;
+		line-height: 1;
+		padding: 0 0.25rem;
+		border-radius: 4px;
+		transition: background var(--transition-fast);
+	}
+
+	.btn-delete-price:hover {
+		background: #fee2e2;
 	}
 </style>

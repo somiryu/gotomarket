@@ -157,5 +157,69 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+
+	updateProduct: async ({ request, locals }) => {
+		if (!locals.user) {
+			throw redirect(303, '/login');
+		}
+
+		const data = await request.formData();
+		const productId = data.get('productId')?.toString();
+		const name = data.get('name')?.toString().trim();
+		const notes = data.get('notes')?.toString().trim();
+		const quantityRaw = data.get('quantity')?.toString().trim();
+		const unit = data.get('unit')?.toString().trim() || null;
+
+		if (!productId || !name) {
+			return fail(400, { error: 'ID de producto y nombre son requeridos.' });
+		}
+
+		const quantity = quantityRaw ? parseFloat(quantityRaw) : null;
+		if (quantity !== null && isNaN(quantity)) {
+			return fail(400, { error: 'La cantidad habitual debe ser un número.' });
+		}
+
+		const { error: dbError } = await supabase
+			.from('market_products')
+			.update({
+				name,
+				notes,
+				quantity,
+				unit,
+				updated_at: new Date().toISOString()
+			})
+			.eq('id', productId)
+			.eq('user_id', locals.user.id);
+
+		if (dbError) {
+			return fail(500, { error: 'Error al actualizar producto: ' + dbError.message });
+		}
+
+		return { success: true };
+	},
+
+	deletePrice: async ({ request, locals }) => {
+		if (!locals.user) {
+			throw redirect(303, '/login');
+		}
+
+		const data = await request.formData();
+		const priceId = data.get('priceId')?.toString();
+
+		if (!priceId) {
+			return fail(400, { error: 'ID de precio no especificado.' });
+		}
+
+		const { error: dbError } = await supabase
+			.from('market_prices')
+			.delete()
+			.eq('id', priceId);
+
+		if (dbError) {
+			return fail(500, { error: 'Error al eliminar precio: ' + dbError.message });
+		}
+
+		return { success: true };
 	}
 };
