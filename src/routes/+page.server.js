@@ -51,9 +51,15 @@ export const actions = {
 
 		const data = await request.formData();
 		const name = data.get('name')?.toString().trim();
+		const stock = data.get('stock')?.toString() || 'Suficiente';
 
 		if (!name) {
 			return fail(400, { error: 'El nombre del producto es requerido.' });
+		}
+
+		const validStocks = ['Alto', 'Suficiente', 'Bajo', 'Agotado'];
+		if (!validStocks.includes(stock)) {
+			return fail(400, { error: 'Nivel de stock inválido.' });
 		}
 
 		const { error: dbError } = await supabase
@@ -61,7 +67,7 @@ export const actions = {
 			.insert({
 				user_id: locals.user.id,
 				name,
-				stock: 'Suficiente' // default stock
+				stock
 			});
 
 		if (dbError) {

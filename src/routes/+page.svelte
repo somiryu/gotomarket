@@ -13,6 +13,11 @@
 	let priceDialog = $state(null);
 	let selectedProduct = $state({ id: '', name: '' });
 	let isSaving = $state({});
+	let searchQuery = $state('');
+
+	let filteredProducts = $derived(
+		products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+	);
 
 	function openPriceDialog(productItem) {
 		selectedProduct = productItem;
@@ -83,6 +88,16 @@
 		</button>
 	</div>
 
+	<!-- Filtro por nombre -->
+	<div class="form-group mb-2" style="width: 100%;">
+		<input 
+			type="text" 
+			placeholder="🔍 Buscar producto por nombre..." 
+			bind:value={searchQuery}
+			style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--border-radius-sm); font-size: 0.95rem; box-shadow: var(--card-shadow);"
+		/>
+	</div>
+
 	<!-- Custom Table/Grid layout -->
 	<div class="card table-card">
 		<div class="table-header-grid">
@@ -98,8 +113,13 @@
 					<span style="font-size: 2rem;">🛍️</span>
 					<p>No tienes productos. ¡Agrega el primero!</p>
 				</div>
+			{:else if filteredProducts.length === 0}
+				<div class="empty-state">
+					<span style="font-size: 1.5rem;">🔍</span>
+					<p>No se encontraron productos para "{searchQuery}".</p>
+				</div>
 			{:else}
-				{#each products as product (product.id)}
+				{#each filteredProducts as product (product.id)}
 					<div class="table-row-grid">
 						<div class="col-product">
 							<span class="product-name">{product.name}</span>
@@ -170,6 +190,17 @@
 				autocomplete="off"
 			/>
 		</div>
+
+		<div class="form-group" style="text-align: left;">
+			<label for="new-product-stock">Stock Inicial</label>
+			<select id="new-product-stock" name="stock">
+				<option value="Alto">Alto</option>
+				<option value="Suficiente" selected>Suficiente</option>
+				<option value="Bajo">Bajo</option>
+				<option value="Agotado">Agotado</option>
+			</select>
+		</div>
+
 		<div class="dialog-footer">
 			<button type="button" onclick={() => addDialog?.close()} class="btn btn-secondary">Cancelar</button>
 			<button type="submit" class="btn btn-primary">Agregar</button>
