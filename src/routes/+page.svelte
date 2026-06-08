@@ -48,6 +48,7 @@
 		Array.from(new Set(products.flatMap(p => p.tags || []))).sort()
 	);
 
+	/** @param {any} productItem */
 	function openDetailsDialog(productItem) {
 		selectedProductId = productItem.id;
 		isEditingDetails = false;
@@ -527,6 +528,14 @@
 						</div>
 					{/if}
 					
+					{#if selectedProductDetails.tags && selectedProductDetails.tags.length > 0}
+						<div class="mb-2" style="display: flex; gap: 0.35rem; flex-wrap: wrap; text-align: left;">
+							{#each selectedProductDetails.tags as tag}
+								<span class="product-tag-badge" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">{tag}</span>
+							{/each}
+						</div>
+					{/if}
+
 					<div class="product-notes mt-1">
 						<span class="label">Notas adicionales / Detalles</span>
 						<p class="notes-text" style="margin-top: 0.25rem;">
@@ -570,6 +579,11 @@
 						<div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.25rem; margin-bottom: 1.25rem;">
 							<input type="checkbox" id="edit-essential" name="is_essential" checked={selectedProductDetails.is_essential} style="width: 18px; height: 18px; accent-color: var(--color-primary); cursor: pointer;" />
 							<label for="edit-essential" style="font-size: 0.95rem; cursor: pointer; color: var(--color-text); font-weight: 500; margin-bottom: 0;">Marcar como producto esencial ⭐</label>
+						</div>
+
+						<div class="form-group">
+							<label for="edit-tags">Etiquetas / Categorías</label>
+							<input type="text" id="edit-tags" name="tags" value={selectedProductDetails.tags?.join(', ') || ''} placeholder="Ej. Carnes, Pasillo 1 (separadas por comas)" autocomplete="off" />
 						</div>
 
 						<div class="form-group">
@@ -1212,5 +1226,68 @@
 		background-color: #fef3c7;
 		color: #b45309;
 		border-color: rgba(180, 83, 9, 0.2);
+	}
+
+	/* Tag badges in dashboard table and details modal */
+	.product-tags-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		margin-top: 0.25rem;
+	}
+
+	.product-tag-badge {
+		font-size: 0.7rem;
+		font-weight: 500;
+		color: var(--color-primary);
+		background: rgba(139, 92, 246, 0.08);
+		border: 1px solid rgba(139, 92, 246, 0.15);
+		padding: 0.1rem 0.35rem;
+		border-radius: 6px;
+		display: inline-block;
+		white-space: nowrap;
+	}
+
+	/* Tag filter chips in active filters list */
+	.filter-chip.tag-chip {
+		background-color: rgba(139, 92, 246, 0.08);
+		color: var(--color-primary);
+		border-color: rgba(139, 92, 246, 0.2);
+	}
+
+	/* Filter Tags Grid inside Filter Dialog */
+	.filter-tags-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		max-height: 120px;
+		overflow-y: auto;
+		padding: 0.1rem;
+	}
+
+	.filter-tag-option-btn {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.35rem 0.65rem;
+		border-radius: 999px;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		background: rgba(255, 255, 255, 0.8);
+		cursor: pointer;
+		font-weight: 500;
+		font-size: 0.8rem;
+		color: var(--color-text);
+		transition: all var(--transition-fast);
+	}
+
+	.filter-tag-option-btn:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+	}
+
+	.filter-tag-option-btn.active {
+		background-color: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
+		box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
 	}
 </style>
