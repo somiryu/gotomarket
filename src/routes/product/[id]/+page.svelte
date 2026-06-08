@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 
 	let { data, form } = $props();
-	let product = $state({ name: '', notes: '' });
+	let product = $state({ name: '', notes: '', quantity: null, unit: null });
 	let prices = $state([]);
 
 	$effect(() => {
@@ -45,9 +45,9 @@
 				<button onclick={() => isEditingDetails = true} class="btn-text">Editar</button>
 			</div>
 
-			{#if product.quantity}
+			{#if product.quantity || product.unit}
 				<div class="mb-2" style="font-size: 0.95rem; color: var(--color-text-muted); text-align: left;">
-					📍 Compra habitual: <strong style="color: var(--color-text);">{product.quantity} {product.unit || ''}</strong>
+					📍 Compra habitual: <strong style="color: var(--color-text);">{product.quantity || ''} {product.unit || ''}</strong>
 				</div>
 			{/if}
 			
