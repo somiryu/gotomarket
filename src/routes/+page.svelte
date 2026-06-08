@@ -39,6 +39,7 @@
 	let searchQuery = $state('');
 	/** @type {string[]} */
 	let activeFilters = $state([]);
+	let stickyHeight = $state(0);
 
 	function openDetailsDialog(productItem) {
 		selectedProductId = productItem.id;
@@ -143,52 +144,55 @@
 		</button>
 	</div>
 
-	<!-- Barra de Búsqueda y Filtros -->
-	<div class="search-filter-row mb-2">
-		<div class="search-input-wrapper">
-			<input 
-				type="text" 
-				placeholder="🔍 Buscar producto..." 
-				bind:value={searchQuery}
-			/>
-		</div>
-		<button 
-			type="button" 
-			onclick={() => filterDialog?.showModal()} 
-			class="btn btn-secondary filter-btn {activeFilters.length > 0 ? 'active' : ''}"
-		>
-			<span>🎛️ Filtros</span>
-			{#if activeFilters.length > 0}
-				<span class="filter-count">{activeFilters.length}</span>
-			{/if}
-		</button>
-	</div>
-
-	<!-- Chips de Filtros Activos -->
-	{#if activeFilters.length > 0}
-		<div class="active-filters-chips fade-in">
-			{#each activeFilters as filter}
-				<button 
-					type="button" 
-					class="filter-chip {getStockClass(filter)}"
-					onclick={() => toggleFilter(filter)}
-				>
-					<span>{filter}</span>
-					<span class="chip-close">&times;</span>
-				</button>
-			{/each}
+	<!-- Sticky Header Wrapper -->
+	<div class="sticky-header-wrapper" bind:clientHeight={stickyHeight}>
+		<!-- Barra de Búsqueda y Filtros -->
+		<div class="search-filter-row">
+			<div class="search-input-wrapper">
+				<input 
+					type="text" 
+					placeholder="🔍 Buscar producto..." 
+					bind:value={searchQuery}
+				/>
+			</div>
 			<button 
 				type="button" 
-				class="btn-text clear-all-btn" 
-				onclick={clearFilters}
+				onclick={() => filterDialog?.showModal()} 
+				class="btn btn-secondary filter-btn {activeFilters.length > 0 ? 'active' : ''}"
 			>
-				Limpiar todo
+				<span>🎛️ Filtros</span>
+				{#if activeFilters.length > 0}
+					<span class="filter-count">{activeFilters.length}</span>
+				{/if}
 			</button>
 		</div>
-	{/if}
+
+		<!-- Chips de Filtros Activos -->
+		{#if activeFilters.length > 0}
+			<div class="active-filters-chips fade-in" style="margin-top: 0.75rem; margin-bottom: 0;">
+				{#each activeFilters as filter}
+					<button 
+						type="button" 
+						class="filter-chip {getStockClass(filter)}"
+						onclick={() => toggleFilter(filter)}
+					>
+						<span>{filter}</span>
+						<span class="chip-close">&times;</span>
+					</button>
+				{/each}
+				<button 
+					type="button" 
+					class="btn-text clear-all-btn" 
+					onclick={clearFilters}
+				>
+					Limpiar todo
+				</button>
+			</div>
+		{/if}
+	</div>
 
 	<!-- Custom Table/Grid layout -->
-	<div class="card table-card">
+	<div class="card table-card" style="--sticky-height: {stickyHeight}px">
 		<div class="table-header-grid">
 			<div class="col-product">Producto</div>
 			<div class="col-stock">Stock</div>
@@ -568,7 +572,6 @@
 
 	.table-card {
 		padding: 0;
-		overflow: hidden;
 	}
 
 	/* Responsive Grid Table */
@@ -577,11 +580,16 @@
 		grid-template-columns: 2.2fr 1.2fr 1.2fr 0.6fr;
 		column-gap: 1.5rem;
 		padding: 1.1rem 1rem;
-		background: rgba(0, 0, 0, 0.02);
+		background: rgba(255, 255, 255, 0.96);
 		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 		font-size: 0.85rem;
 		font-weight: 600;
 		color: var(--color-text-muted);
+		position: sticky;
+		top: var(--sticky-height, 0px);
+		z-index: 40;
+		border-top-left-radius: calc(var(--border-radius-md) - 1px);
+		border-top-right-radius: calc(var(--border-radius-md) - 1px);
 	}
 
 	.table-row-grid {
@@ -743,6 +751,21 @@
 		padding: 3rem 1.5rem;
 		text-align: center;
 		gap: 0.5rem;
+	}
+
+	.sticky-header-wrapper {
+		position: sticky;
+		top: 0;
+		z-index: 50;
+		background: rgba(248, 250, 252, 0.85); /* Matches gradient light color with transparency */
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		padding: 0.75rem 0.5rem;
+		margin-left: -0.5rem;
+		margin-right: -0.5rem;
+		margin-bottom: 1rem;
+		border-radius: var(--border-radius-sm);
+		box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.03);
 	}
 
 	/* Search and filter row */
