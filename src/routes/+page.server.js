@@ -56,6 +56,7 @@ export const actions = {
 		const unit = data.get('unit')?.toString().trim() || null;
 		const tagsRaw = data.get('tags')?.toString() || '';
 		const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+		const isEssential = data.get('is_essential') === 'on';
 
 		if (!name) {
 			return fail(400, { error: 'El nombre del producto es requerido.' });
@@ -79,7 +80,8 @@ export const actions = {
 				stock,
 				quantity,
 				unit,
-				tags
+				tags,
+				is_essential: isEssential
 			});
 
 		if (dbError) {

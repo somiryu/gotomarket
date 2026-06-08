@@ -366,6 +366,11 @@
 			</div>
 		</div>
 
+		<div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.25rem; margin-bottom: 1.25rem; text-align: left;">
+			<input type="checkbox" id="new-product-essential" name="is_essential" style="width: 18px; height: 18px; accent-color: var(--color-primary); cursor: pointer;" />
+			<label for="new-product-essential" style="font-size: 0.95rem; cursor: pointer; color: var(--color-text); font-weight: 500; margin-bottom: 0;">Marcar como producto esencial ⭐</label>
+		</div>
+
 		<div class="form-group" style="text-align: left;">
 			<label for="new-product-tags">Etiquetas / Categorías</label>
 			<input 
