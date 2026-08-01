@@ -348,63 +348,58 @@
 		{:else}
 			{#each filteredProducts as product (product.id)}
 				<div class="card product-card">
-					<!-- Top Row: Name + Star + Edit icon -->
+					<!-- Top Row: Name + Star + Tags + Edit icon -->
 					<div class="product-card-header">
-						<button 
-							type="button" 
-							class="product-name-btn" 
-							onclick={() => openDetailsDialog(product)}
-							title="Ver detalles"
-						>
-							{#if product.is_essential}
-								<span class="essential-star" title="Producto Esencial">⭐</span>
-							{/if}
-							<span class="product-name-text">{product.name}</span>
-						</button>
-						<div class="flex-row gap-xs" style="align-items: center;">
+						<div class="product-name-and-tags">
+							<button 
+								type="button" 
+								class="product-name-btn" 
+								onclick={() => openDetailsDialog(product)}
+								title="Ver detalles"
+							>
+								{#if product.is_essential}
+									<span class="essential-star" title="Producto Esencial">⭐</span>
+								{/if}
+								<span class="product-name-text">{product.name}</span>
+							</button>
+
 							{#if product.is_essential}
 								<span class="essential-badge" title="Producto Esencial">⭐ Esencial</span>
 							{/if}
-							<button 
-								type="button" 
-								onclick={() => openDetailsDialog(product)} 
-								class="btn-edit-icon" 
-								title="Editar / Detalles"
-							>
-								✏️
-							</button>
+
+							{#if product.tags && product.tags.length > 0}
+								{#each product.tags as tag}
+									<span class="product-tag-inline">{tag}</span>
+								{/each}
+							{/if}
 						</div>
+
+						<button 
+							type="button" 
+							onclick={() => openDetailsDialog(product)} 
+							class="btn-edit-icon" 
+							title="Editar / Detalles"
+						>
+							✏️
+						</button>
 					</div>
 
-					<!-- Tags (if any) -->
-					{#if product.tags && product.tags.length > 0}
-						<div class="product-tags-list">
-							{#each product.tags as tag}
-								<span class="product-tag-badge">{tag}</span>
-							{/each}
-						</div>
-					{/if}
-
-					<!-- Middle Row: $Price [- Quantity Unit] [Brand] -->
-					<div class="product-card-body">
-						<div class="price-qty-row">
-							{#if product.latestPrice}
-								<div class="price-container">
-									<span class="price-value">{formatPrice(product.latestPrice.price)}</span>
-									<span class="price-unit">/{product.latestPrice.unit}</span>
-									{#if product.latestPrice.brand}
-										<span class="price-brand-badge">{product.latestPrice.brand}</span>
-									{/if}
-								</div>
-							{:else}
-								<button type="button" onclick={() => openPriceDialog(product)} class="add-price-link">+ Precio</button>
+					<!-- Middle Row: Price, Unit, Brand & Habitual Quantity inline -->
+					<div class="product-card-info-line">
+						{#if product.latestPrice}
+							<span class="price-value-compact">{formatPrice(product.latestPrice.price)}</span>
+							<span class="price-unit-compact">/{product.latestPrice.unit}</span>
+							{#if product.latestPrice.brand}
+								<span class="price-brand-badge">{product.latestPrice.brand}</span>
 							{/if}
+						{:else}
+							<button type="button" onclick={() => openPriceDialog(product)} class="add-price-link">+ Precio</button>
+						{/if}
 
-							{#if product.quantity || product.unit}
-								<span class="qty-dash">-</span>
-								<span class="product-qty">Habitual: {product.quantity || ''} {product.unit || ''}</span>
-							{/if}
-						</div>
+						{#if product.quantity || product.unit}
+							<span class="info-bullet">•</span>
+							<span class="product-qty-compact">Habitual: {product.quantity || ''} {product.unit || ''}</span>
+						{/if}
 					</div>
 
 					<!-- Bottom Row: Stock Select Dropdown -->
@@ -1763,9 +1758,9 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		padding: 1.1rem;
+		padding: 0.75rem 0.9rem;
 		margin-bottom: 0;
-		gap: 0.75rem;
+		gap: 0.4rem;
 		background: var(--card-bg);
 		border-radius: var(--border-radius-md);
 		border: 1px solid var(--card-border);
@@ -1776,7 +1771,15 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
+		gap: 0.4rem;
+	}
+
+	.product-name-and-tags {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		flex-wrap: wrap;
+		min-width: 0;
 	}
 
 	.product-name-btn {
@@ -1784,7 +1787,7 @@
 		border: none;
 		padding: 0;
 		font-family: inherit;
-		font-size: 1.05rem;
+		font-size: 1.02rem;
 		font-weight: 600;
 		color: var(--color-text);
 		text-align: left;
@@ -1806,6 +1809,37 @@
 		white-space: nowrap;
 	}
 
+	.product-tag-inline {
+		font-size: 0.7rem;
+		font-weight: 500;
+		color: #7c3aed;
+		background: #f3e8ff;
+		border: 1px solid #e9d5ff;
+		padding: 0.05rem 0.4rem;
+		border-radius: 999px;
+		white-space: nowrap;
+	}
+
+	.product-card-info-line {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.35rem;
+		font-size: 0.85rem;
+		color: var(--color-text-muted);
+	}
+
+	.price-value-compact {
+		font-weight: 700;
+		font-size: 0.98rem;
+		color: var(--color-text);
+	}
+
+	.price-unit-compact {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+	}
+
 	.btn-edit-icon {
 		background: rgba(0, 0, 0, 0.04);
 		border: none;
@@ -1822,38 +1856,28 @@
 		transform: scale(1.08);
 	}
 
-	.product-card-body {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.price-qty-row {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		font-size: 0.9rem;
-	}
-
-	.qty-dash {
-		color: var(--color-text-muted);
-		font-weight: 300;
-	}
-
 	.price-brand-badge {
-		font-size: 0.72rem;
+		font-size: 0.7rem;
 		font-weight: 500;
 		color: #475569;
 		background: #f1f5f9;
 		border: 1px solid #cbd5e1;
 		padding: 0.05rem 0.35rem;
-		border-radius: 6px;
-		margin-left: 0.25rem;
+		border-radius: 4px;
+	}
+
+	.info-bullet {
+		color: #cbd5e1;
+		font-size: 0.75rem;
+	}
+
+	.product-qty-compact {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
 	}
 
 	.product-card-footer {
-		margin-top: 0.25rem;
+		margin-top: 0.1rem;
 	}
 
 	.products-cards-grid {
