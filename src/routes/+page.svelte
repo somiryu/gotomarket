@@ -44,6 +44,11 @@
 	let stickyHeight = $state(0);
 	let showOnlyEssential = $state(false);
 
+	let isSubmittingAdd = $state(false);
+	let isSubmittingPrice = $state(false);
+	let isSubmittingUpdate = $state(false);
+	let isSubmittingDelete = $state(false);
+
 	let allTags = $derived(
 		Array.from(new Set(products.flatMap(p => p.tags || []))).sort()
 	);
@@ -319,11 +324,16 @@
 		<button onclick={() => addDialog?.close()} class="btn-text" style="font-size: 1.25rem;">&times;</button>
 	</div>
 	<form method="POST" action="?/addProduct" use:enhance={() => {
+		isSubmittingAdd = true;
 		return async ({ result, update }) => {
-			if (result.type === 'success') {
-				addDialog?.close();
+			try {
+				if (result.type === 'success') {
+					addDialog?.close();
+				}
+				await update();
+			} finally {
+				isSubmittingAdd = false;
 			}
-			await update();
 		};
 	}}>
 		<div class="form-group">
@@ -383,8 +393,10 @@
 		</div>
 
 		<div class="dialog-footer">
-			<button type="button" onclick={() => addDialog?.close()} class="btn btn-secondary">Cancelar</button>
-			<button type="submit" class="btn btn-primary">Agregar</button>
+			<button type="button" onclick={() => addDialog?.close()} class="btn btn-secondary" disabled={isSubmittingAdd}>Cancelar</button>
+			<button type="submit" class="btn btn-primary" disabled={isSubmittingAdd}>
+				{isSubmittingAdd ? 'Guardando...' : 'Agregar'}
+			</button>
 		</div>
 	</form>
 </dialog>
@@ -399,11 +411,16 @@
 		Producto: <strong style="color: var(--color-text);">{selectedProduct.name}</strong>
 	</p>
 	<form method="POST" action="?/addPrice" use:enhance={() => {
+		isSubmittingPrice = true;
 		return async ({ result, update }) => {
-			if (result.type === 'success') {
-				priceDialog?.close();
+			try {
+				if (result.type === 'success') {
+					priceDialog?.close();
+				}
+				await update();
+			} finally {
+				isSubmittingPrice = false;
 			}
-			await update();
 		};
 	}}>
 		<input type="hidden" name="productId" value={selectedProduct.id} />
@@ -438,8 +455,10 @@
 		</div>
 
 		<div class="dialog-footer">
-			<button type="button" onclick={() => priceDialog?.close()} class="btn btn-secondary">Cancelar</button>
-			<button type="submit" class="btn btn-primary">Registrar</button>
+			<button type="button" onclick={() => priceDialog?.close()} class="btn btn-secondary" disabled={isSubmittingPrice}>Cancelar</button>
+			<button type="submit" class="btn btn-primary" disabled={isSubmittingPrice}>
+				{isSubmittingPrice ? 'Registrando...' : 'Registrar'}
+			</button>
 		</div>
 	</form>
 </dialog>
@@ -542,11 +561,16 @@
 					</div>
 				{:else}
 					<form method="POST" action="?/updateProduct" use:enhance={() => {
+						isSubmittingUpdate = true;
 						return async ({ result, update }) => {
-							if (result.type === 'success') {
-								isEditingDetails = false;
+							try {
+								if (result.type === 'success') {
+									isEditingDetails = false;
+								}
+								await update();
+							} finally {
+								isSubmittingUpdate = false;
 							}
-							await update();
 						};
 					}}>
 						<input type="hidden" name="productId" value={selectedProductDetails.id} />
@@ -590,8 +614,10 @@
 						</div>
 
 						<div class="flex-row mt-2" style="justify-content: flex-end; gap: 0.5rem;">
-							<button type="button" onclick={() => isEditingDetails = false} class="btn btn-secondary btn-sm">Cancelar</button>
-							<button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+							<button type="button" onclick={() => isEditingDetails = false} class="btn btn-secondary btn-sm" disabled={isSubmittingUpdate}>Cancelar</button>
+							<button type="submit" class="btn btn-primary btn-sm" disabled={isSubmittingUpdate}>
+								{isSubmittingUpdate ? 'Guardando...' : 'Guardar'}
+							</button>
 						</div>
 					</form>
 				{/if}
@@ -643,20 +669,25 @@
 			</div>
 
 			<!-- Dangerous Actions -->
-			<div class="card mt-2" style="background: rgba(254, 226, 226, 0.4); border-color: rgba(239, 68, 68, 0.2); text-align: left; margin-top: 1.5rem; padding: 1.25rem;">
+			<div class="card mt-2 danger-zone-card" style="background: rgba(254, 226, 226, 0.4); border-color: rgba(239, 68, 68, 0.2); text-align: left; margin-top: 1.5rem; margin-bottom: 5rem; padding: 1.25rem;">
 				<h3 style="color: #991b1b; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem;">Zona de peligro</h3>
 				<p style="font-size: 0.8rem; margin-bottom: 1rem; color: var(--color-text-muted);">Al eliminar este producto, se borrarán de forma permanente todos sus registros de precios e información.</p>
 				<form method="POST" action="?/deleteProduct" use:enhance={() => {
+					isSubmittingDelete = true;
 					return async ({ result, update }) => {
-						if (result.type === 'success') {
-							detailsDialog?.close();
+						try {
+							if (result.type === 'success') {
+								detailsDialog?.close();
+							}
+							await update();
+						} finally {
+							isSubmittingDelete = false;
 						}
-						await update();
 					};
 				}}>
 					<input type="hidden" name="id" value={selectedProductDetails.id} />
-					<button type="submit" class="btn btn-danger w-full btn-sm" onclick={(e) => { if (!confirm('¿Estás seguro de que deseas eliminar este producto y todo su historial de precios?')) e.preventDefault(); }}>
-						Eliminar Producto
+					<button type="submit" class="btn btn-danger w-full btn-sm" disabled={isSubmittingDelete} onclick={(e) => { if (!confirm('¿Estás seguro de que deseas eliminar este producto y todo su historial de precios?')) e.preventDefault(); }}>
+						{isSubmittingDelete ? 'Eliminando...' : 'Eliminar Producto'}
 					</button>
 				</form>
 			</div>
@@ -1099,7 +1130,7 @@
 	.dialog-body-scrollable {
 		flex: 1;
 		overflow-y: auto;
-		padding-bottom: 3rem;
+		padding-bottom: max(6rem, calc(5rem + env(safe-area-inset-bottom)));
 		margin-top: 0.5rem;
 		-webkit-overflow-scrolling: touch;
 	}

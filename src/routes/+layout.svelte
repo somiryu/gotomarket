@@ -1,5 +1,6 @@
 <script>
 	import '../app.css';
+	import { enhance } from '$app/forms';
 
 	let { data, children } = $props();
 </script>
@@ -15,7 +16,7 @@
 			<a href="/" class="logo">
 				🛒 <span>GoToMarket</span>
 			</a>
-			<form action="/login?/logout" method="POST" class="flex-row">
+			<form action="/login?/logout" method="POST" class="flex-row" use:enhance>
 				<span style="font-size: 0.8rem; color: var(--color-text-muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
 					{data.user.email}
 				</span>

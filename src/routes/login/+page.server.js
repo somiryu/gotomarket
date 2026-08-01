@@ -1,5 +1,6 @@
 import { supabase } from '$lib/supabase';
 import { redirect, fail } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 
 /** @type {import('./$types').Actions} */
 export const actions = {
@@ -45,8 +46,8 @@ export const actions = {
 		cookies.set('market_user_id', user.id, {
 			path: '/',
 			httpOnly: true,
-			sameSite: 'strict',
-			secure: true,
+			sameSite: 'lax',
+			secure: !dev,
 			maxAge: 60 * 60 * 24 * 30 // 30 days
 		});
 
@@ -54,7 +55,12 @@ export const actions = {
 	},
 
 	logout: async ({ cookies }) => {
-		cookies.delete('market_user_id', { path: '/' });
+		cookies.delete('market_user_id', {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: !dev
+		});
 		throw redirect(303, '/login');
 	}
 };

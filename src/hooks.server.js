@@ -1,5 +1,6 @@
 import { supabase } from '$lib/supabase';
 import { redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handle({ event, resolve }) {
@@ -15,7 +16,12 @@ export async function handle({ event, resolve }) {
 		if (user && !error) {
 			event.locals.user = user;
 		} else {
-			event.cookies.delete('market_user_id', { path: '/' });
+			event.cookies.delete('market_user_id', {
+				path: '/',
+				httpOnly: true,
+				sameSite: 'lax',
+				secure: !dev
+			});
 			event.locals.user = null;
 		}
 	} else {
