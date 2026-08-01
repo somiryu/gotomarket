@@ -17,6 +17,7 @@ export async function load({ locals }) {
 				price,
 				unit,
 				place,
+				brand,
 				created_at
 			)
 		`)
@@ -126,6 +127,7 @@ export const actions = {
 		const priceRaw = data.get('price')?.toString();
 		const unit = data.get('unit')?.toString().trim();
 		const place = data.get('place')?.toString().trim();
+		const brand = data.get('brand')?.toString().trim() || null;
 
 		if (!productId || !priceRaw || !unit || !place) {
 			return fail(400, { error: 'Todos los campos son requeridos para agregar un precio.' });
@@ -154,7 +156,8 @@ export const actions = {
 				product_id: productId,
 				price,
 				unit,
-				place
+				place,
+				brand
 			});
 
 		if (dbError) {

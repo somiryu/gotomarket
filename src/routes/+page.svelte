@@ -237,83 +237,101 @@
 		{/if}
 	</div>
 
-	<!-- Custom Table/Grid layout -->
-	<div class="card table-card" style="--sticky-height: {stickyHeight}px">
-		<div class="table-header-grid">
-			<div class="col-product">Producto</div>
-			<div class="col-stock">Stock</div>
-			<div class="col-price">Precios</div>
-			<div class="col-action">Ver</div>
-		</div>
-
-		<div class="table-body">
-			{#if products.length === 0}
-				<div class="empty-state">
-					<span style="font-size: 2rem;">🛍️</span>
-					<p>No tienes productos. ¡Agrega el primero!</p>
-				</div>
-			{:else if filteredProducts.length === 0}
-				<div class="empty-state">
-					<span style="font-size: 1.5rem;">🔍</span>
-					<p>No se encontraron productos con los criterios seleccionados.</p>
-				</div>
-			{:else}
-				{#each filteredProducts as product (product.id)}
-					<div class="table-row-grid">
-						<div class="col-product">
-							<span class="product-name">
-								{#if product.is_essential}
-									<span class="essential-star" title="Producto Esencial">⭐</span>
-								{/if}
-								{product.name}
-							</span>
-							{#if product.quantity}
-								<span class="product-qty">{product.quantity} {product.unit || ''}</span>
+	<!-- Products Cards Grid layout -->
+	<div class="products-cards-grid" style="margin-top: 1rem;">
+		{#if products.length === 0}
+			<div class="card empty-state w-full">
+				<span style="font-size: 2rem;">🛍️</span>
+				<p>No tienes productos. ¡Agrega el primero!</p>
+			</div>
+		{:else if filteredProducts.length === 0}
+			<div class="card empty-state w-full">
+				<span style="font-size: 1.5rem;">🔍</span>
+				<p>No se encontraron productos con los criterios seleccionados.</p>
+			</div>
+		{:else}
+			{#each filteredProducts as product (product.id)}
+				<div class="card product-card">
+					<!-- Top Row: Name + Star + Edit icon -->
+					<div class="product-card-header">
+						<button 
+							type="button" 
+							class="product-name-btn" 
+							onclick={() => openDetailsDialog(product)}
+							title="Ver detalles"
+						>
+							{#if product.is_essential}
+								<span class="essential-star" title="Producto Esencial">⭐</span>
 							{/if}
-						</div>
-						
-						<div class="col-stock">
-							<div class="select-wrapper {getStockClass(product.stock)}">
-								<select 
-									value={product.stock} 
-									onchange={(e) => {
-										const target = e.target;
-										if (target instanceof HTMLSelectElement) {
-											handleStockChange(product.id, target.value);
-										}
-									}}
-									disabled={isSaving[product.id]}
-								>
-									<option value="Alto">Alto</option>
-									<option value="Suficiente">Suficiente</option>
-									<option value="Bajo">Bajo</option>
-									<option value="Agotado">Agotado</option>
-								</select>
-								{#if isSaving[product.id]}
-									<span class="save-indicator">⏳</span>
-								{/if}
-							</div>
-						</div>
+							<span class="product-name-text">{product.name}</span>
+						</button>
+						<button 
+							type="button" 
+							onclick={() => openDetailsDialog(product)} 
+							class="btn-edit-icon" 
+							title="Editar / Detalles"
+						>
+							✏️
+						</button>
+					</div>
 
-						<div class="col-price">
+					<!-- Tags (if any) -->
+					{#if product.tags && product.tags.length > 0}
+						<div class="product-tags-list">
+							{#each product.tags as tag}
+								<span class="product-tag-badge">{tag}</span>
+							{/each}
+						</div>
+					{/if}
+
+					<!-- Middle Row: $Price [- Quantity Unit] [Brand] -->
+					<div class="product-card-body">
+						<div class="price-qty-row">
 							{#if product.latestPrice}
 								<div class="price-container">
 									<span class="price-value">{formatPrice(product.latestPrice.price)}</span>
 									<span class="price-unit">/{product.latestPrice.unit}</span>
-									<button type="button" onclick={() => openDetailsDialog(product)} class="edit-price-link">Edit</button>
+									{#if product.latestPrice.brand}
+										<span class="price-brand-badge">{product.latestPrice.brand}</span>
+									{/if}
 								</div>
 							{:else}
 								<button type="button" onclick={() => openPriceDialog(product)} class="add-price-link">+ Precio</button>
 							{/if}
-						</div>
 
-						<div class="col-action">
-							<button type="button" onclick={() => openDetailsDialog(product)} class="btn-ver">Ver</button>
+							{#if product.quantity || product.unit}
+								<span class="qty-dash">-</span>
+								<span class="product-qty">{product.quantity || ''} {product.unit || ''}</span>
+							{/if}
 						</div>
 					</div>
-				{/each}
-			{/if}
-		</div>
+
+					<!-- Bottom Row: Stock Select Dropdown -->
+					<div class="product-card-footer">
+						<div class="select-wrapper {getStockClass(product.stock)}">
+							<select 
+								value={product.stock} 
+								onchange={(e) => {
+									const target = e.target;
+									if (target instanceof HTMLSelectElement) {
+										handleStockChange(product.id, target.value);
+									}
+								}}
+								disabled={isSaving[product.id]}
+							>
+								<option value="Alto">Alto</option>
+								<option value="Suficiente">Suficiente</option>
+								<option value="Bajo">Bajo</option>
+								<option value="Agotado">Agotado</option>
+							</select>
+							{#if isSaving[product.id]}
+								<span class="save-indicator">⏳</span>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/each}
+		{/if}
 	</div>
 </div>
 
@@ -440,6 +458,11 @@
 				<option value="ltr"></option>
 				<option value="paquete"></option>
 			</datalist>
+		</div>
+
+		<div class="form-group" style="text-align: left;">
+			<label for="brand">Marca (Opcional)</label>
+			<input type="text" id="brand" name="brand" placeholder="Ej. Roa, Diana, Alpina" autocomplete="off" />
 		</div>
 
 		<div class="form-group" style="text-align: left;">
@@ -636,6 +659,7 @@
 				<div class="prices-header-grid">
 					<div>Precio</div>
 					<div>Unidad</div>
+					<div>Marca</div>
 					<div>Lugar</div>
 					<div>Fecha</div>
 				</div>
@@ -653,6 +677,7 @@
 									{formatPrice(priceLog.price)}
 								</div>
 								<div class="col-price-unit">{priceLog.unit}</div>
+								<div class="col-price-brand">{priceLog.brand || '-'}</div>
 								<div class="col-price-place">{priceLog.place}</div>
 								<div class="col-price-date flex-row justify-between w-full">
 									<span>{new Date(priceLog.created_at).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -1152,7 +1177,7 @@
 	/* Prices Grid inside Dialog */
 	.prices-header-grid {
 		display: grid;
-		grid-template-columns: 1.2fr 0.8fr 1.0fr 1.5fr;
+		grid-template-columns: 1.1fr 0.7fr 0.9fr 0.9fr 1.4fr;
 		padding: 0.85rem 0.75rem;
 		background: rgba(0, 0, 0, 0.02);
 		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -1163,11 +1188,17 @@
 
 	.price-row-grid {
 		display: grid;
-		grid-template-columns: 1.2fr 0.8fr 1.0fr 1.5fr;
+		grid-template-columns: 1.1fr 0.7fr 0.9fr 0.9fr 1.4fr;
 		align-items: center;
 		padding: 0.85rem 0.75rem;
 		border-bottom: 1px solid rgba(0, 0, 0, 0.03);
 		font-size: 0.9rem;
+	}
+
+	.col-price-brand {
+		font-size: 0.85rem;
+		color: var(--color-text);
+		font-weight: 500;
 	}
 
 	.price-row-grid:last-child {
@@ -1318,5 +1349,110 @@
 		color: white;
 		border-color: var(--color-primary);
 		box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+	}
+
+	/* Products Cards Grid */
+	.products-cards-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1rem;
+		width: 100%;
+	}
+
+	.product-card {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		padding: 1.1rem;
+		margin-bottom: 0;
+		gap: 0.75rem;
+		background: var(--card-bg);
+		border-radius: var(--border-radius-md);
+		border: 1px solid var(--card-border);
+		box-shadow: var(--card-shadow);
+	}
+
+	.product-card-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.product-name-btn {
+		background: none;
+		border: none;
+		padding: 0;
+		font-family: inherit;
+		font-size: 1.05rem;
+		font-weight: 600;
+		color: var(--color-text);
+		text-align: left;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.product-name-btn:hover {
+		color: var(--color-primary);
+	}
+
+	.product-name-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.btn-edit-icon {
+		background: rgba(0, 0, 0, 0.04);
+		border: none;
+		font-size: 0.9rem;
+		padding: 0.25rem 0.45rem;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		flex-shrink: 0;
+	}
+
+	.btn-edit-icon:hover {
+		background: rgba(139, 92, 246, 0.15);
+		transform: scale(1.08);
+	}
+
+	.product-card-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.price-qty-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		font-size: 0.9rem;
+	}
+
+	.qty-dash {
+		color: var(--color-text-muted);
+		font-weight: 300;
+	}
+
+	.price-brand-badge {
+		font-size: 0.72rem;
+		font-weight: 500;
+		color: #475569;
+		background: #f1f5f9;
+		border: 1px solid #cbd5e1;
+		padding: 0.05rem 0.35rem;
+		border-radius: 6px;
+		margin-left: 0.25rem;
+	}
+
+	.product-card-footer {
+		margin-top: 0.25rem;
 	}
 </style>
