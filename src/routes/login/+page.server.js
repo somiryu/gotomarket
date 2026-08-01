@@ -55,6 +55,14 @@ export const actions = {
 	},
 
 	logout: async ({ cookies }) => {
+		cookies.set('market_user_id', '', {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: !dev,
+			maxAge: 0,
+			expires: new Date(0)
+		});
 		cookies.delete('market_user_id', {
 			path: '/',
 			httpOnly: true,

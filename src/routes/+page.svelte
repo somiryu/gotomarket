@@ -48,6 +48,64 @@
 	let isSubmittingPrice = $state(false);
 	let isSubmittingUpdate = $state(false);
 	let isSubmittingDelete = $state(false);
+	let isSubmittingScan = $state(false);
+
+	let scanDialog = $state(null);
+	let isScanningIA = $state(false);
+	let scanImagePreview = $state(null);
+	let scanResult = $state({
+		productId: 'new',
+		productName: '',
+		price: '',
+		unit: 'un',
+		brand: '',
+		place: 'Supermercado',
+		stock: 'Alto',
+		isNew: true
+	});
+
+	async function handleScanImage(event) {
+		const input = event.target;
+		if (!input.files || input.files.length === 0) return;
+
+		const file = input.files[0];
+		scanImagePreview = URL.createObjectURL(file);
+		isScanningIA = true;
+		scanDialog?.showModal();
+
+		const formData = new FormData();
+		formData.append('image', file);
+
+		try {
+			const response = await fetch('/api/scan', {
+				method: 'POST',
+				body: formData
+			});
+			const result = await response.json();
+
+			if (result.success && result.data) {
+				const data = result.data;
+				scanResult = {
+					productId: data.matched_product_id || 'new',
+					productName: data.matched_product_name || data.suggested_name || '',
+					price: data.price ? String(data.price) : '',
+					unit: data.unit || 'un',
+					brand: data.brand || '',
+					place: data.place || 'Supermercado',
+					stock: 'Alto',
+					isNew: Boolean(data.is_new)
+				};
+			} else {
+				alert(result.error || 'No se pudo procesar la etiqueta de la imagen.');
+			}
+		} catch (err) {
+			console.error(err);
+			alert('Error al procesar la imagen con la IA.');
+		} finally {
+			isScanningIA = false;
+			input.value = '';
+		}
+	}
 
 	let allTags = $derived(
 		Array.from(new Set(products.flatMap(p => p.tags || []))).sort()
@@ -181,6 +239,17 @@
 					bind:value={searchQuery}
 				/>
 			</div>
+			<label class="btn btn-primary scan-btn" title="Escanear etiqueta de precio con IA" style="display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; white-space: nowrap;">
+				<span>📸 Escanear IA</span>
+				<input 
+					type="file" 
+					accept="image/*" 
+					capture="environment" 
+					onchange={handleScanImage} 
+					style="display: none;" 
+					disabled={isScanningIA}
+				/>
+			</label>
 			<button 
 				type="button" 
 				onclick={() => filterDialog?.showModal()} 
@@ -301,7 +370,7 @@
 
 							{#if product.quantity || product.unit}
 								<span class="qty-dash">-</span>
-								<span class="product-qty">{product.quantity || ''} {product.unit || ''}</span>
+								<span class="product-qty">Habitual: {product.quantity || ''} {product.unit || ''}</span>
 							{/if}
 						</div>
 					</div>
@@ -333,6 +402,32 @@
 			{/each}
 		{/if}
 	</div>
+</div>
+
+<!-- Floating Bottom IA Bar (Close to Thumb) -->
+<div class="bottom-ia-bar">
+	<label class="btn-ia-scan-floating" title="Escanear etiqueta de precio con IA">
+		<span>✨ 📸 Escanear Etiqueta IA</span>
+		<input 
+			type="file" 
+			accept="image/*" 
+			capture="environment" 
+			onchange={handleScanImage} 
+			style="display: none;" 
+			disabled={isScanningIA}
+		/>
+	</label>
+	<button 
+		type="button" 
+		class="btn-add-floating"
+		onclick={() => {
+			newProduct = { name: '', stock: 'Alto', notes: '', is_essential: false, tags: [] };
+			addDialog?.showModal();
+		}}
+		title="Agregar producto manualmente"
+	>
+		➕ Nuevo
+	</button>
 </div>
 
 <!-- Add Product Modal Dialog -->
@@ -484,6 +579,128 @@
 			</button>
 		</div>
 	</form>
+</dialog>
+
+<!-- AI Scanner Modal Dialog -->
+<dialog bind:this={scanDialog}>
+	<div class="dialog-header">
+		<h2>Escanear Etiqueta con IA</h2>
+		<button onclick={() => scanDialog?.close()} class="btn-text" style="font-size: 1.25rem;">&times;</button>
+	</div>
+
+	{#if isScanningIA}
+		<div class="empty-state" style="padding: 2.5rem 1rem;">
+			<span style="font-size: 2.5rem; animation: pulse 1.5s infinite;">📸</span>
+			<p style="font-weight: 600; color: var(--color-primary); margin-top: 0.5rem;">Analizando etiqueta con IA...</p>
+			<p style="font-size: 0.8rem; color: var(--color-text-muted);">Extrayendo precio, unidad, marca y buscando coincidencias en tu catálogo...</p>
+		</div>
+	{:else}
+		<form method="POST" action="?/saveScan" use:enhance={() => {
+			isSubmittingScan = true;
+			return async ({ result, update }) => {
+				try {
+					if (result.type === 'success') {
+						scanDialog?.close();
+					}
+					await update();
+				} finally {
+					isSubmittingScan = false;
+				}
+			};
+		}}>
+			{#if scanImagePreview}
+				<div style="text-align: center; margin-bottom: 1rem;">
+					<img src={scanImagePreview} alt="Captura de precio" style="max-height: 120px; border-radius: 12px; object-fit: contain; border: 1px solid var(--card-border);" />
+				</div>
+			{/if}
+
+			<div class="form-group" style="text-align: left;">
+				<label for="scan-product">Producto detectado / Seleccionar</label>
+				<select 
+					id="scan-product" 
+					name="productId" 
+					bind:value={scanResult.productId} 
+					onchange={(e) => {
+						const target = e.target;
+						if (target instanceof HTMLSelectElement) {
+							scanResult.productId = target.value;
+							if (target.value !== 'new') {
+								const found = products.find(p => p.id === target.value);
+								if (found) scanResult.productName = found.name;
+							}
+						}
+					}}
+				>
+					<option value="new">➕ Crear como nuevo producto ({scanResult.productName || 'Nuevo'})</option>
+					{#each products as product}
+						<option value={product.id}>📌 {product.name}</option>
+					{/each}
+				</select>
+			</div>
+
+			{#if scanResult.productId === 'new'}
+				<div class="form-group" style="text-align: left;">
+					<label for="scan-product-name">Nombre del nuevo producto</label>
+					<input type="text" id="scan-product-name" name="productName" bind:value={scanResult.productName} required />
+				</div>
+			{:else}
+				<input type="hidden" name="productName" value={scanResult.productName} />
+			{/if}
+
+			<div class="flex-row gap-md" style="margin-bottom: 1rem;">
+				<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+					<label for="scan-price">Precio ($)</label>
+					<input type="number" id="scan-price" name="price" bind:value={scanResult.price} placeholder="Ej. 2500" min="1" step="any" required />
+				</div>
+				<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+					<label for="scan-unit">Unidad</label>
+					<input type="text" id="scan-unit" name="unit" bind:value={scanResult.unit} placeholder="Ej. kg, un, ltr" required list="scan-units" autocomplete="off" />
+					<datalist id="scan-units">
+						<option value="kg"></option>
+						<option value="grm"></option>
+						<option value="un"></option>
+						<option value="ltr"></option>
+						<option value="paquete"></option>
+					</datalist>
+				</div>
+			</div>
+
+			<div class="flex-row gap-md" style="margin-bottom: 1rem;">
+				<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+					<label for="scan-brand">Marca (Opcional)</label>
+					<input type="text" id="scan-brand" name="brand" bind:value={scanResult.brand} placeholder="Ej. Diana, Bimbo" autocomplete="off" />
+				</div>
+				<div class="form-group" style="text-align: left; flex: 1; margin-bottom: 0;">
+					<label for="scan-place">Establecimiento</label>
+					<input type="text" id="scan-place" name="place" bind:value={scanResult.place} placeholder="Ej. D1, Éxito" required list="scan-places" autocomplete="off" />
+					<datalist id="scan-places">
+						<option value="D1"></option>
+						<option value="Ara"></option>
+						<option value="Carulla"></option>
+						<option value="Éxito"></option>
+						<option value="Fruver"></option>
+					</datalist>
+				</div>
+			</div>
+
+			<div class="form-group" style="text-align: left;">
+				<label for="scan-stock">Estado de Stock al Comprar</label>
+				<select id="scan-stock" name="stock" bind:value={scanResult.stock}>
+					<option value="Alto">🟢 Alto</option>
+					<option value="Suficiente">🔵 Suficiente</option>
+					<option value="Bajo">🟠 Bajo</option>
+					<option value="Agotado">🔴 Agotado</option>
+				</select>
+			</div>
+
+			<div class="dialog-footer mt-2">
+				<button type="button" onclick={() => scanDialog?.close()} class="btn btn-secondary" disabled={isSubmittingScan}>Cancelar</button>
+				<button type="submit" class="btn btn-primary" disabled={isSubmittingScan}>
+					{isSubmittingScan ? 'Guardando...' : 'Guardar en Mercado'}
+				</button>
+			</div>
+		</form>
+	{/if}
 </dialog>
 
 <!-- Filter Modal Dialog -->
@@ -1454,5 +1671,68 @@
 
 	.product-card-footer {
 		margin-top: 0.25rem;
+	}
+
+	.products-cards-grid {
+		padding-bottom: max(8rem, calc(7rem + env(safe-area-inset-bottom))) !important;
+	}
+
+	.bottom-ia-bar {
+		position: fixed;
+		bottom: max(1.25rem, calc(1rem + env(safe-area-inset-bottom)));
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 99;
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		background: rgba(255, 255, 255, 0.88);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		padding: 0.5rem 0.75rem;
+		border-radius: 999px;
+		border: 1px solid rgba(255, 255, 255, 0.8);
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+		max-width: calc(100vw - 1.5rem);
+		width: max-content;
+	}
+
+	.btn-ia-scan-floating {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+		color: white;
+		padding: 0.75rem 1.25rem;
+		border-radius: 999px;
+		font-weight: 600;
+		font-size: 0.95rem;
+		cursor: pointer;
+		box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+		transition: all var(--transition-fast);
+		white-space: nowrap;
+	}
+
+	.btn-ia-scan-floating:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
+	}
+
+	.btn-add-floating {
+		background: #f1f5f9;
+		color: #334155;
+		border: 1px solid #cbd5e1;
+		padding: 0.75rem 1rem;
+		border-radius: 999px;
+		font-weight: 600;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		white-space: nowrap;
+	}
+
+	.btn-add-floating:hover {
+		background: #e2e8f0;
+		transform: translateY(-1px);
 	}
 </style>

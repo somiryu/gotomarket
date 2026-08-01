@@ -16,7 +16,11 @@
 			<a href="/" class="logo">
 				🛒 <span>GoToMarket</span>
 			</a>
-			<form action="/login?/logout" method="POST" class="flex-row" use:enhance>
+			<form action="/login?/logout" method="POST" class="flex-row" use:enhance={() => {
+				return async ({ result }) => {
+					window.location.href = '/login';
+				};
+			}}>
 				<span style="font-size: 0.8rem; color: var(--color-text-muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
 					{data.user.email}
 				</span>

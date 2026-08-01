@@ -234,5 +234,73 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+
+	saveScan: async ({ request, locals }) => {
+		if (!locals.user) {
+			throw redirect(303, '/login');
+		}
+
+		const data = await request.formData();
+		let productId = data.get('productId')?.toString();
+		const productName = data.get('productName')?.toString().trim();
+		const priceRaw = data.get('price')?.toString();
+		const unit = data.get('unit')?.toString().trim() || 'un';
+		const place = data.get('place')?.toString().trim() || 'Supermercado';
+		const brand = data.get('brand')?.toString().trim() || null;
+		const stock = data.get('stock')?.toString() || 'Alto';
+
+		if (!productName || !priceRaw) {
+			return fail(400, { error: 'El nombre del producto y el precio son requeridos.' });
+		}
+
+		const price = parseFloat(priceRaw);
+		if (isNaN(price) || price <= 0) {
+			return fail(400, { error: 'Ingresa un precio numérico válido mayor a cero.' });
+		}
+
+		// If product does not exist yet, create it
+		if (!productId || productId === 'new') {
+			const { data: newProduct, error: createError } = await supabase
+				.from('market_products')
+				.insert({
+					user_id: locals.user.id,
+					name: productName,
+					stock,
+					unit,
+					quantity: 1
+				})
+				.select()
+				.single();
+
+			if (createError) {
+				return fail(500, { error: 'Error al registrar el nuevo producto: ' + createError.message });
+			}
+			productId = newProduct.id;
+		} else {
+			// Update stock on existing product
+			await supabase
+				.from('market_products')
+				.update({ stock })
+				.eq('id', productId)
+				.eq('user_id', locals.user.id);
+		}
+
+		// Insert price record
+		const { error: priceError } = await supabase
+			.from('market_prices')
+			.insert({
+				product_id: productId,
+				price,
+				unit,
+				place,
+				brand
+			});
+
+		if (priceError) {
+			return fail(500, { error: 'Error al registrar el precio: ' + priceError.message });
+		}
+
+		return { success: true };
 	}
 };
