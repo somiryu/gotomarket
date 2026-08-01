@@ -271,20 +271,12 @@
 			</div>
 			<button 
 				type="button" 
-				onclick={() => showOnlyEssential = !showOnlyEssential} 
-				class="btn btn-secondary essential-quick-btn {showOnlyEssential ? 'active' : ''}"
-				title="Filtrar solo productos esenciales"
-			>
-				<span>⭐ Esenciales</span>
-			</button>
-			<button 
-				type="button" 
 				onclick={() => filterDialog?.showModal()} 
-				class="btn btn-secondary filter-btn {activeFilters.length > 0 || activeTags.length > 0 ? 'active' : ''}"
+				class="btn btn-secondary filter-btn {activeFilters.length > 0 || activeTags.length > 0 || showOnlyEssential ? 'active' : ''}"
 			>
 				<span>🎛️ Filtros</span>
-				{#if (activeFilters.length + activeTags.length) > 0}
-					<span class="filter-count">{activeFilters.length + activeTags.length}</span>
+				{#if (activeFilters.length + activeTags.length + (showOnlyEssential ? 1 : 0)) > 0}
+					<span class="filter-count">{activeFilters.length + activeTags.length + (showOnlyEssential ? 1 : 0)}</span>
 				{/if}
 			</button>
 		</div>
@@ -348,31 +340,16 @@
 		{:else}
 			{#each filteredProducts as product (product.id)}
 				<div class="card product-card">
-					<!-- Top Row: Name + Star + Tags + Edit icon -->
+					<!-- Row 1: Clean Name + Edit icon -->
 					<div class="product-card-header">
-						<div class="product-name-and-tags">
-							<button 
-								type="button" 
-								class="product-name-btn" 
-								onclick={() => openDetailsDialog(product)}
-								title="Ver detalles"
-							>
-								{#if product.is_essential}
-									<span class="essential-star" title="Producto Esencial">⭐</span>
-								{/if}
-								<span class="product-name-text">{product.name}</span>
-							</button>
-
-							{#if product.is_essential}
-								<span class="essential-badge" title="Producto Esencial">⭐ Esencial</span>
-							{/if}
-
-							{#if product.tags && product.tags.length > 0}
-								{#each product.tags as tag}
-									<span class="product-tag-inline">{tag}</span>
-								{/each}
-							{/if}
-						</div>
+						<button 
+							type="button" 
+							class="product-name-btn" 
+							onclick={() => openDetailsDialog(product)}
+							title="Ver detalles"
+						>
+							<span class="product-name-text">{product.name}</span>
+						</button>
 
 						<button 
 							type="button" 
@@ -383,6 +360,20 @@
 							✏️
 						</button>
 					</div>
+
+					<!-- Row 2: Badges (Essential badge + Category Tags) -->
+					{#if product.is_essential || (product.tags && product.tags.length > 0)}
+						<div class="product-badges-row">
+							{#if product.is_essential}
+								<span class="essential-badge" title="Producto Esencial">⭐ Esencial</span>
+							{/if}
+							{#if product.tags && product.tags.length > 0}
+								{#each product.tags as tag}
+									<span class="product-tag-badge">{tag}</span>
+								{/each}
+							{/if}
+						</div>
+					{/if}
 
 					<!-- Middle Row: Price, Unit, Brand & Habitual Quantity inline -->
 					<div class="product-card-info-line">
@@ -440,17 +431,6 @@
 		title="Opciones de Inteligencia Artificial"
 	>
 		<span>✨ IA</span>
-	</button>
-	<button 
-		type="button" 
-		class="btn-add-floating"
-		onclick={() => {
-			newProduct = { name: '', stock: 'Alto', notes: '', is_essential: false, tags: [] };
-			addDialog?.showModal();
-		}}
-		title="Agregar producto manualmente"
-	>
-		➕ Nuevo
 	</button>
 </div>
 
@@ -1774,12 +1754,11 @@
 		gap: 0.4rem;
 	}
 
-	.product-name-and-tags {
+	.product-badges-row {
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
 		flex-wrap: wrap;
-		min-width: 0;
+		gap: 0.3rem 0.4rem;
 	}
 
 	.product-name-btn {
