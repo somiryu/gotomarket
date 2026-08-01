@@ -252,6 +252,14 @@
 			</label>
 			<button 
 				type="button" 
+				onclick={() => showOnlyEssential = !showOnlyEssential} 
+				class="btn btn-secondary essential-quick-btn {showOnlyEssential ? 'active' : ''}"
+				title="Filtrar solo productos esenciales"
+			>
+				<span>⭐ Esenciales</span>
+			</button>
+			<button 
+				type="button" 
 				onclick={() => filterDialog?.showModal()} 
 				class="btn btn-secondary filter-btn {activeFilters.length > 0 || activeTags.length > 0 ? 'active' : ''}"
 			>
@@ -334,14 +342,19 @@
 							{/if}
 							<span class="product-name-text">{product.name}</span>
 						</button>
-						<button 
-							type="button" 
-							onclick={() => openDetailsDialog(product)} 
-							class="btn-edit-icon" 
-							title="Editar / Detalles"
-						>
-							✏️
-						</button>
+						<div class="flex-row gap-xs" style="align-items: center;">
+							{#if product.is_essential}
+								<span class="essential-badge" title="Producto Esencial">⭐ Esencial</span>
+							{/if}
+							<button 
+								type="button" 
+								onclick={() => openDetailsDialog(product)} 
+								class="btn-edit-icon" 
+								title="Editar / Detalles"
+							>
+								✏️
+							</button>
+						</div>
 					</div>
 
 					<!-- Tags (if any) -->
@@ -1461,6 +1474,34 @@
 		display: inline-block;
 		color: #eab308;
 		font-size: 0.95rem;
+	}
+
+	.essential-badge {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: #854d0e;
+		background: #fef08a;
+		border: 1px solid #fde047;
+		padding: 0.1rem 0.4rem;
+		border-radius: 6px;
+		white-space: nowrap;
+	}
+
+	.essential-quick-btn {
+		white-space: nowrap;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		border-radius: var(--border-radius-sm);
+		transition: all var(--transition-fast);
+	}
+
+	.essential-quick-btn.active {
+		background: #fef08a !important;
+		color: #854d0e !important;
+		border-color: #fde047 !important;
+		font-weight: 600 !important;
+		box-shadow: 0 2px 8px rgba(234, 179, 8, 0.25);
 	}
 
 	.essential-filter-toggle {
