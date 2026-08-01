@@ -49,10 +49,15 @@
 	let isSubmittingUpdate = $state(false);
 	let isSubmittingDelete = $state(false);
 	let isSubmittingScan = $state(false);
+	let isSubmittingInfo = $state(false);
 
+	let aiMenuDialog = $state(null);
 	let scanDialog = $state(null);
+	let scanInfoDialog = $state(null);
 	let isScanningIA = $state(false);
 	let scanImagePreview = $state(null);
+	let activeScanMode = $state('price');
+
 	let scanResult = $state({
 		productId: 'new',
 		productName: '',
@@ -64,17 +69,34 @@
 		isNew: true
 	});
 
-	async function handleScanImage(event) {
+	let scanInfoResult = $state({
+		productId: '',
+		productName: '',
+		extractedInfo: ''
+	});
+
+	let priceFileInput = $state(null);
+	let infoFileInput = $state(null);
+
+	async function handleScanModeFile(event, mode) {
 		const input = event.target;
 		if (!input.files || input.files.length === 0) return;
 
 		const file = input.files[0];
 		scanImagePreview = URL.createObjectURL(file);
 		isScanningIA = true;
-		scanDialog?.showModal();
+		activeScanMode = mode;
+		aiMenuDialog?.close();
+
+		if (mode === 'price') {
+			scanDialog?.showModal();
+		} else if (mode === 'info') {
+			scanInfoDialog?.showModal();
+		}
 
 		const formData = new FormData();
 		formData.append('image', file);
+		formData.append('mode', mode);
 
 		try {
 			const response = await fetch('/api/scan', {
@@ -85,22 +107,30 @@
 
 			if (result.success && result.data) {
 				const data = result.data;
-				scanResult = {
-					productId: data.matched_product_id || 'new',
-					productName: data.matched_product_name || data.suggested_name || '',
-					price: data.price ? String(data.price) : '',
-					unit: data.unit || 'un',
-					brand: data.brand || '',
-					place: data.place || 'Supermercado',
-					stock: 'Alto',
-					isNew: Boolean(data.is_new)
-				};
+				if (mode === 'price') {
+					scanResult = {
+						productId: data.matched_product_id || 'new',
+						productName: data.matched_product_name || data.suggested_name || '',
+						price: data.price ? String(data.price) : '',
+						unit: data.unit || 'un',
+						brand: data.brand || '',
+						place: data.place || 'Supermercado',
+						stock: 'Alto',
+						isNew: Boolean(data.is_new)
+					};
+				} else if (mode === 'info') {
+					scanInfoResult = {
+						productId: data.matched_product_id || (products.length > 0 ? products[0].id : ''),
+						productName: data.matched_product_name || data.suggested_name || '',
+						extractedInfo: data.extracted_info || ''
+					};
+				}
 			} else {
-				alert(result.error || 'No se pudo procesar la etiqueta de la imagen.');
+				alert(result.error || 'No se pudo procesar la imagen con IA.');
 			}
 		} catch (err) {
 			console.error(err);
-			alert('Error al procesar la imagen con la IA.');
+			alert('Error al procesar la imagen con IA.');
 		} finally {
 			isScanningIA = false;
 			input.value = '';
@@ -239,17 +269,6 @@
 					bind:value={searchQuery}
 				/>
 			</div>
-			<label class="btn btn-primary scan-btn" title="Escanear etiqueta de precio con IA" style="display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; white-space: nowrap;">
-				<span>📸 Escanear IA</span>
-				<input 
-					type="file" 
-					accept="image/*" 
-					capture="environment" 
-					onchange={handleScanImage} 
-					style="display: none;" 
-					disabled={isScanningIA}
-				/>
-			</label>
 			<button 
 				type="button" 
 				onclick={() => showOnlyEssential = !showOnlyEssential} 
@@ -419,17 +438,14 @@
 
 <!-- Floating Bottom IA Bar (Close to Thumb) -->
 <div class="bottom-ia-bar">
-	<label class="btn-ia-scan-floating" title="Escanear etiqueta de precio con IA">
-		<span>✨ 📸 Escanear Etiqueta IA</span>
-		<input 
-			type="file" 
-			accept="image/*" 
-			capture="environment" 
-			onchange={handleScanImage} 
-			style="display: none;" 
-			disabled={isScanningIA}
-		/>
-	</label>
+	<button 
+		type="button" 
+		class="btn-ia-scan-floating" 
+		onclick={() => aiMenuDialog?.showModal()}
+		title="Opciones de Inteligencia Artificial"
+	>
+		<span>✨ IA</span>
+	</button>
 	<button 
 		type="button" 
 		class="btn-add-floating"
@@ -442,6 +458,132 @@
 		➕ Nuevo
 	</button>
 </div>
+
+<!-- Hidden native file inputs for the 3 IA modes -->
+<input 
+	type="file" 
+	accept="image/*" 
+	capture="environment" 
+	bind:this={priceFileInput}
+	onchange={(e) => handleScanModeFile(e, 'price')} 
+	style="display: none;" 
+/>
+<input 
+	type="file" 
+	accept="image/*" 
+	capture="environment" 
+	bind:this={infoFileInput}
+	onchange={(e) => handleScanModeFile(e, 'info')} 
+	style="display: none;" 
+/>
+
+<!-- AI Menu Selector Modal Dialog -->
+<dialog bind:this={aiMenuDialog}>
+	<div class="dialog-header">
+		<h2>✨ Funciones de IA</h2>
+		<button onclick={() => aiMenuDialog?.close()} class="btn-text" style="font-size: 1.25rem;">&times;</button>
+	</div>
+	<div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;">
+		<button 
+			type="button" 
+			class="ai-option-btn" 
+			onclick={() => {
+				priceFileInput?.click();
+			}}
+		>
+			<span style="font-size: 1.4rem;">🏷️</span>
+			<div style="text-align: left;">
+				<div style="font-weight: 600; color: var(--color-text);">Escanear producto y etiqueta</div>
+				<div style="font-size: 0.78rem; color: var(--color-text-muted);">Detecta nombre, precio, marca, unidad y actualiza stock</div>
+			</div>
+		</button>
+
+		<button 
+			type="button" 
+			class="ai-option-btn" 
+			onclick={() => {
+				infoFileInput?.click();
+			}}
+		>
+			<span style="font-size: 1.4rem;">📝</span>
+			<div style="text-align: left;">
+				<div style="font-weight: 600; color: var(--color-text);">Escanear producto info</div>
+				<div style="font-size: 0.78rem; color: var(--color-text-muted);">Extrae tabla nutricional o info de empaque a las anotaciones</div>
+			</div>
+		</button>
+
+		<button 
+			type="button" 
+			class="ai-option-btn" 
+			onclick={() => {
+				alert('📸 Escanear recibo completo (Próximamente)');
+			}}
+		>
+			<span style="font-size: 1.4rem;">🧾</span>
+			<div style="text-align: left;">
+				<div style="font-weight: 600; color: var(--color-text);">Escanear recibo</div>
+				<div style="font-size: 0.78rem; color: var(--color-text-muted);">Procesa múltiples compras de una tira de recibo</div>
+			</div>
+		</button>
+	</div>
+</dialog>
+
+<!-- AI Scan Product Info Dialog -->
+<dialog bind:this={scanInfoDialog}>
+	<div class="dialog-header">
+		<h2>Anotaciones de Producto con IA</h2>
+		<button onclick={() => scanInfoDialog?.close()} class="btn-text" style="font-size: 1.25rem;">&times;</button>
+	</div>
+
+	{#if isScanningIA}
+		<div class="empty-state" style="padding: 2.5rem 1rem;">
+			<span style="font-size: 2.5rem; animation: pulse 1.5s infinite;">📝</span>
+			<p style="font-weight: 600; color: var(--color-primary); margin-top: 0.5rem;">Analizando empaque/info con IA...</p>
+			<p style="font-size: 0.8rem; color: var(--color-text-muted);">Extrayendo características, ingredientes o info nutricional...</p>
+		</div>
+	{:else}
+		<form method="POST" action="?/saveInfo" use:enhance={() => {
+			isSubmittingInfo = true;
+			return async ({ result, update }) => {
+				try {
+					if (result.type === 'success') {
+						scanInfoDialog?.close();
+					}
+					await update();
+				} finally {
+					isSubmittingInfo = false;
+				}
+			};
+		}}>
+			{#if scanImagePreview}
+				<div style="text-align: center; margin-bottom: 1rem;">
+					<img src={scanImagePreview} alt="Captura de información" style="max-height: 120px; border-radius: 12px; object-fit: contain; border: 1px solid var(--card-border);" />
+				</div>
+			{/if}
+
+			<div class="form-group" style="text-align: left;">
+				<label for="info-product">Producto a guardar anotación</label>
+				<select id="info-product" name="productId" bind:value={scanInfoResult.productId} required>
+					{#each products as product}
+						<option value={product.id}>📌 {product.name}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div class="form-group" style="text-align: left;">
+				<label for="info-notes">Información extraída (Anotaciones)</label>
+				<textarea id="info-notes" name="notes" bind:value={scanInfoResult.extractedInfo} rows="4" required></textarea>
+			</div>
+
+			<div class="dialog-footer mt-2">
+				<button type="button" onclick={() => scanInfoDialog?.close()} class="btn btn-secondary" disabled={isSubmittingInfo}>Cancelar</button>
+				<button type="submit" class="btn btn-primary" disabled={isSubmittingInfo}>
+					{isSubmittingInfo ? 'Guardando...' : 'Guardar Anotación'}
+				</button>
+			</div>
+		</form>
+	{/if}
+</dialog>
 
 <!-- Add Product Modal Dialog -->
 <dialog bind:this={addDialog}>
@@ -1774,6 +1916,25 @@
 
 	.btn-add-floating:hover {
 		background: #e2e8f0;
+		transform: translateY(-1px);
+	}
+
+	.ai-option-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.85rem;
+		padding: 0.85rem 1rem;
+		border-radius: var(--border-radius-md);
+		border: 1px solid var(--card-border);
+		background: rgba(255, 255, 255, 0.9);
+		cursor: pointer;
+		width: 100%;
+		transition: all var(--transition-fast);
+	}
+
+	.ai-option-btn:hover {
+		border-color: var(--color-primary);
+		background: rgba(139, 92, 246, 0.06);
 		transform: translateY(-1px);
 	}
 </style>

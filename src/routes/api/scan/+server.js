@@ -16,6 +16,7 @@ export async function POST({ request, locals }) {
 	try {
 		const formData = await request.formData();
 		const imageFile = formData.get('image');
+		const mode = formData.get('mode')?.toString() || 'price'; // 'price', 'info', or 'receipt'
 
 		if (!imageFile || !(imageFile instanceof Blob)) {
 			return json({ error: 'No se proporcionó una imagen válida.' }, { status: 400 });
@@ -29,7 +30,7 @@ export async function POST({ request, locals }) {
 		// Fetch existing user products
 		const { data: userProducts, error: dbError } = await supabase
 			.from('market_products')
-			.select('id, name')
+			.select('id, name, notes')
 			.eq('user_id', locals.user.id)
 			.order('name', { ascending: true });
 
@@ -42,7 +43,31 @@ export async function POST({ request, locals }) {
 		// Initialize Gemini client
 		const ai = new GoogleGenAI({ apiKey });
 
-		const prompt = `Analiza la imagen adjunta (foto de una etiqueta de precio o empaque de un producto en un supermercado).
+		// Choose prompt based on mode
+		let prompt = '';
+
+		if (mode === 'info') {
+			prompt = `Analiza la imagen adjunta (que es una foto del empaque de un producto, su etiqueta de ingredientes, tabla nutricional o información de producto).
+
+Lista de productos que el usuario YA TIENE registrados en su catálogo de la app:
+${JSON.stringify(productListSummary)}
+
+Instrucciones:
+1. Extrae y resume la información útil del producto que aparece en la imagen (ingredientes clave, instrucciones de uso, notas nutricionales o características destacadas). Haz un resumen conciso en español (máximo 2-3 frases limpias).
+2. Compara el producto con la lista de productos del usuario:
+   - Si coincide con un producto existente (ej: foto de reverso de "Leche Alquería" -> "Leche"), asigna "matched_product_id" con el ID exacto y "matched_product_name" con el nombre exacto.
+   - Si no coincide con ninguno, pon "matched_product_id": null y "suggested_name": nombre del producto.
+
+RESPONDE ÚNICAMENTE EN FORMATO JSON PLANO VÁLIDO CON EL SIGUIENTE ESQUEMA EXACTO, SIN MARKDOWN:
+{
+  "matched_product_id": string | null,
+  "matched_product_name": string | null,
+  "suggested_name": string,
+  "extracted_info": string
+}`;
+		} else {
+			// Mode === 'price'
+			prompt = `Analiza la imagen adjunta (foto de una etiqueta de precio o empaque de un producto en un supermercado).
 
 Lista de productos que el usuario YA TIENE registrados en su catálogo de la app:
 ${JSON.stringify(productListSummary)}
@@ -56,7 +81,7 @@ Instrucciones de extracción:
    - Si coincide con un producto existente (ejemplo: foto de "Leche Alquería" -> coincide con el producto "Leche"), asigna "matched_product_id" con el ID exacto, "matched_product_name" con el nombre exacto del producto en la lista, y "is_new": false.
    - Si no coincide con ninguno, asigna "matched_product_id": null, "matched_product_name": null, "suggested_name": un nombre limpio en español (ej: "Pera", "Sobrebarriga"), y "is_new": true.
 
-RESPONDE ÚNICAMENTE EN FORMATO JSON PLANO VÁLIDO CON EL SIGUIENTE ESQUEMA EXACTO, SIN MARKDOWN NI CÓDIGO EXTRA:
+RESPONDE ÚNICAMENTE EN FORMATO JSON PLANO VÁLIDO CON EL SIGUIENTE ESQUEMA EXACTO, SIN MARKDOWN:
 {
   "matched_product_id": string | null,
   "matched_product_name": string | null,
@@ -67,28 +92,51 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PLANO VÁLIDO CON EL SIGUIENTE ESQUEMA EXAC
   "place": string | null,
   "is_new": boolean
 }`;
+		}
 
-		const response = await ai.models.generateContent({
-			model: 'gemini-1.5-flash',
-			contents: [
-				{
-					role: 'user',
-					parts: [
-						{ text: prompt },
-						{
-							inlineData: {
-								mimeType: mimeType,
-								data: base64Data
+		// Use model gemini-flash-latest (points to Google's newest Flash model automatically)
+		let response;
+		try {
+			response = await ai.models.generateContent({
+				model: 'gemini-flash-latest',
+				contents: [
+					{
+						role: 'user',
+						parts: [
+							{ text: prompt },
+							{
+								inlineData: {
+									mimeType: mimeType,
+									data: base64Data
+								}
 							}
-						}
-					]
-				}
-			]
-		});
+						]
+					}
+				]
+			});
+		} catch (modelErr) {
+			console.warn('Fallback to gemini-2.0-flash due to:', modelErr.message);
+			response = await ai.models.generateContent({
+				model: 'gemini-2.0-flash',
+				contents: [
+					{
+						role: 'user',
+						parts: [
+							{ text: prompt },
+							{
+								inlineData: {
+									mimeType: mimeType,
+									data: base64Data
+								}
+							}
+						]
+					}
+				]
+			});
+		}
 
 		const textResult = response.text || '';
 		
-		// Clean markdown backticks if any
 		const cleanedJsonText = textResult
 			.replace(/```json/gi, '')
 			.replace(/```/g, '')
@@ -98,6 +146,7 @@ RESPONDE ÚNICAMENTE EN FORMATO JSON PLANO VÁLIDO CON EL SIGUIENTE ESQUEMA EXAC
 
 		return json({
 			success: true,
+			mode,
 			data: parsed
 		});
 

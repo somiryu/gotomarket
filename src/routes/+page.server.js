@@ -302,5 +302,42 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+
+	saveInfo: async ({ request, locals }) => {
+		if (!locals.user) {
+			throw redirect(303, '/login');
+		}
+
+		const data = await request.formData();
+		const productId = data.get('productId')?.toString();
+		const newNotes = data.get('notes')?.toString().trim();
+
+		if (!productId || !newNotes) {
+			return fail(400, { error: 'Selecciona un producto y proporciona la información de notas.' });
+		}
+
+		// Fetch existing notes first to append cleanly
+		const { data: currentProduct } = await supabase
+			.from('market_products')
+			.select('notes')
+			.eq('id', productId)
+			.eq('user_id', locals.user.id)
+			.single();
+
+		const existingNotes = currentProduct?.notes ? currentProduct.notes + '\n\n' : '';
+		const updatedNotes = existingNotes + newNotes;
+
+		const { error: dbError } = await supabase
+			.from('market_products')
+			.update({ notes: updatedNotes, updated_at: new Date().toISOString() })
+			.eq('id', productId)
+			.eq('user_id', locals.user.id);
+
+		if (dbError) {
+			return fail(500, { error: 'Error al guardar anotaciones del producto: ' + dbError.message });
+		}
+
+		return { success: true };
 	}
 };
