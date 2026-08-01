@@ -28,13 +28,22 @@ export async function handle({ event, resolve }) {
 		event.locals.user = null;
 	}
 
-	// Protect all routes except /login and static files / favicon / api (if you want api endpoints open, but here api needs auth too)
-	if (!event.locals.user && !event.url.pathname.startsWith('/login') && !event.url.pathname.startsWith('/favicon.ico')) {
+	const isPublicRoute = 
+		event.url.pathname.startsWith('/login') || 
+		event.url.pathname.startsWith('/logout') || 
+		event.url.pathname.startsWith('/favicon.ico');
+
+	// Protect all routes except public ones
+	if (!event.locals.user && !isPublicRoute) {
 		throw redirect(303, '/login');
 	}
 
-	// If logged in and going to login, redirect to dashboard
-	if (event.locals.user && event.url.pathname.startsWith('/login')) {
+	// If logged in and visiting GET /login directly, redirect to dashboard
+	if (
+		event.locals.user && 
+		event.url.pathname === '/login' && 
+		event.request.method === 'GET'
+	) {
 		throw redirect(303, '/');
 	}
 
